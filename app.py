@@ -61,22 +61,12 @@ hide_st_style = """
     }
     
     /* 5. TIGHTEN SUB-BOX HEADERS */
-    /* Reduces the gap between "Set 1" text and the inputs below it */
     div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
         gap: 0.5rem;
     }
     </style>
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
-
-# --- CELEBRATION LOGIC ---
-if "celebrate" not in st.session_state:
-    st.session_state.celebrate = False
-
-if st.session_state.celebrate:
-    st.balloons()
-    st.toast("Great Set! Logged successfully.", icon="🎉")
-    st.session_state.celebrate = False 
 
 # --- AUTO-FILL CALLBACK ---
 def update_weights(ex_key):
@@ -142,6 +132,7 @@ if day_data.empty:
 else:
     target_groups = list(dict.fromkeys(day_data['Target Group']))
     
+    # Loop through exercises
     for group in target_groups:
         
         # --- START EXERCISE CARD ---
@@ -212,8 +203,8 @@ else:
                 # SPACER BEFORE BUTTON
                 st.markdown("<div style='height: 10px'></div>", unsafe_allow_html=True)
 
-                # LOG Button
-                if st.button(f"LOG {selected_exercise.upper()}", type="primary", key=f"btn_{selected_exercise}", use_container_width=True):
+                # SAVE BUTTON (Changed Label, removed balloon trigger)
+                if st.button("SAVE SETS", type="primary", key=f"btn_{selected_exercise}", use_container_width=True):
                     w1, r1 = st.session_state.get(k_w1), st.session_state.get(k_r1)
                     w2, r2 = st.session_state.get(k_w2), st.session_state.get(k_r2)
                     w3, r3 = st.session_state.get(k_w3), st.session_state.get(k_r3)
@@ -229,7 +220,7 @@ else:
                         new_df = pd.DataFrame(new_logs)
                         updated_df = pd.concat([history_df, new_df], ignore_index=True)
                         conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=updated_df)
-                        st.session_state.celebrate = True
+                        st.toast("Sets Saved!", icon="✅")
                         st.rerun()
 
             # --- TAB 2: EDIT HISTORY ---
@@ -263,3 +254,11 @@ else:
                             st.rerun()
                         
                         st.divider()
+    
+    # --- END OF EXERCISE LOOP ---
+    
+    st.divider()
+    # THE BIG FINISH BUTTON
+    if st.button("WORKOUT COMPLETED!!!", type="primary", use_container_width=True):
+        st.balloons()
+        st.success("Great job! Workout recorded.")
