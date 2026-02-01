@@ -87,25 +87,9 @@ hide_st_style = """
     .exercise-title {
         font-size: 1.4rem;
         font-weight: 800;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
         line-height: 1.2;
     }
-
-    div[data-testid="stSelectbox"] > label { display: none; }
-    
-    .inline-label-container {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 15px;
-    }
-    .inline-label-container > label {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #D81B60;
-        white-space: nowrap;
-    }
-    .inline-label-container > div { flex-grow: 1; }
 
     .warmup-box {
         background-color: #fff0f5;
@@ -126,6 +110,16 @@ hide_st_style = """
         font-weight: bold;
         text-align: center;
         margin: 5px 0;
+    }
+    
+    /* Small Swap Link Styling */
+    .swap-link {
+        color: #D81B60;
+        font-size: 0.8rem;
+        text-decoration: underline;
+        cursor: pointer;
+        margin-bottom: 15px;
+        display: block;
     }
     </style>
 """
@@ -155,7 +149,7 @@ img_dark = get_base64_image("Pippafit_Dark.png")
 if img_light and img_dark:
     st.markdown(f'<div class="logo-container"><img src="data:image/png;base64,{img_light}" class="logo-light"><img src="data:image/png;base64,{img_dark}" class="logo-dark"></div>', unsafe_allow_html=True)
 
-# --- DAY SELECTION (UPDATED TO MON/WED/SAT) ---
+# --- DAY SELECTION ---
 days = ["Monday", "Wednesday", "Saturday"]
 if 'selected_day' not in st.session_state:
     curr_day = datetime.now().strftime("%A")
@@ -188,22 +182,48 @@ else:
             options = day_data[day_data['Target Group'] == muscle]
             ex_list = options['Exercise'].tolist()
             
-            sb_key = f"sb_{muscle}_{st.session_state.selected_day}"
-            if sb_key not in st.session_state: st.session_state[sb_key] = ex_list[0]
+            # Use muscle group as the unique anchor for selection
+            anchor_key = f"anchor_{muscle}_{st.session_state.selected_day}"
+            if anchor_key not in st.session_state:
+                st.session_state[anchor_key] = ex_list[0]
             
             st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
-            st.markdown(f'<div class="exercise-title">{st.session_state[sb_key]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="exercise-title">{st.session_state[anchor_key]}</div>', unsafe_allow_html=True)
             
-            st.markdown('<div class="inline-label-container"><label>Swap exercise (optional)</label>', unsafe_allow_html=True)
-            selected_ex = st.selectbox("Swap exercise (optional)", ex_list, key=sb_key, label_visibility="collapsed")
-            st.markdown('</div>', unsafe_allow_html=True)
+            # --- SWAP CTA LOGIC ---
+            swap_state_key = f"is_swapping_{muscle}"
+            if swap_state_key not in st.session_state:
+                st.session_state[swap_state_key] = False
             
-            video = options[options['Exercise'] == selected_ex].iloc[0]['Video Link']
+            if not st.session_state[swap_state_key]:
+                if st.button("Swap exercise", key=f"btn_swap_{muscle}"):
+                    st.session_state[swap_state_key] = True
+                    st.rerun()
+            else:
+                # Show dropdown only when swapping is activated
+                selected_ex = st.selectbox(
+                    "Choose replacement", 
+                    ex_list, 
+                    index=ex_list.index(st.session_state[anchor_key]),
+                    key=f"sb_{muscle}_{st.session_state.selected_day}"
+                )
+                if selected_ex != st.session_state[anchor_key]:
+                    st.session_state[anchor_key] = selected_ex
+                    st.session_state[swap_state_key] = False
+                    st.rerun()
+                if st.button("Cancel swap", key=f"cancel_{muscle}"):
+                    st.session_state[swap_state_key] = False
+                    st.rerun()
+
+            current_exercise = st.session_state[anchor_key]
+            
+            # Tutorial Video
+            video = options[options['Exercise'] == current_exercise].iloc[0]['Video Link']
             if pd.notna(video) and str(video).strip():
                 with st.expander("▶️ Exercise tutorial"):
                     st.video(format_youtube_url(str(video).strip()))
 
-            ex_history = history_df[history_df['Exercise'] == selected_ex].copy()
+            ex_history = history_df[history_df['Exercise'] == current_exercise].copy()
             target_msg = "No history"
             if not ex_history.empty:
                 ex_history['Date'] = pd.to_datetime(ex_history['Date'], errors='coerce')
@@ -220,24 +240,23 @@ else:
                 for i in range(1, 4):
                     with st.container(border=True):
                         st.markdown(f"###### Set {i}")
-                        kw, kr = f"{selected_ex}_w{i}", f"{selected_ex}_r{i}"
+                        kw, kr = f"{current_exercise}_w{i}", f"{current_exercise}_r{i}"
                         c_w, c_r = st.columns(2)
-                        c_w.number_input("Kg", value=None, step=1.25, key=kw, on_change=update_weights if i==1 else None, args=(selected_ex,) if i==1 else None)
+                        c_w.number_input("Kg", value=None, step=1.25, key=kw, on_change=update_weights if i==1 else None, args=(current_exercise,) if i==1 else None)
                         c_r.number_input("Reps", value=None, step=1, key=kr)
                     
-                    # Add rest text between sets 1-2 and 2-3
                     if i < 3:
                         st.markdown('<p class="rest-text">Rest 1 min between sets</p>', unsafe_allow_html=True)
 
-                if st.button("SAVE SETS", type="primary", key=f"save_{selected_ex}_{muscle}", use_container_width=True):
+                if st.button("SAVE SETS", type="primary", key=f"save_{current_exercise}_{muscle}", use_container_width=True):
                     new_rows = []
                     for i in range(1, 4):
-                        r = st.session_state.get(f"{selected_ex}_r{i}")
+                        r = st.session_state.get(f"{current_exercise}_r{i}")
                         if r:
                             new_rows.append({
                                 "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
-                                "Exercise": selected_ex, 
-                                "Weight": st.session_state.get(f"{selected_ex}_w{i}") or 0, 
+                                "Exercise": current_exercise, 
+                                "Weight": st.session_state.get(f"{current_exercise}_w{i}") or 0, 
                                 "Reps": r
                             })
                     if new_rows:
@@ -245,11 +264,11 @@ else:
                             conn = st.connection("gsheets", type=GSheetsConnection)
                             conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=pd.concat([history_df, pd.DataFrame(new_rows)], ignore_index=True))
                             st.cache_data.clear()
-                        st.toast(f"{selected_ex} logged!", icon="✅")
+                        st.toast(f"{current_exercise} logged!", icon="✅")
                         st.rerun()
 
             with tab_edit:
-                recent = history_df[history_df['Exercise'] == selected_ex].sort_values(by='Date', ascending=False).head(3)
+                recent = history_df[history_df['Exercise'] == current_exercise].sort_values(by='Date', ascending=False).head(3)
                 if recent.empty: st.info("No logs.")
                 else:
                     for idx, row in recent.iterrows():
