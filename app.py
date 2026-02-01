@@ -67,7 +67,8 @@ hide_st_style = """
         border: 1px solid #d0d0d0 !important;
     }
 
-    .swap-link-wrapper div.stButton > button {
+    /* Small Swap Trigger Styling */
+    .swap-trigger-wrapper div.stButton > button {
         border: none !important;
         background-color: transparent !important;
         color: #D81B60 !important;
@@ -75,8 +76,9 @@ hide_st_style = """
         font-size: 0.8rem !important;
         padding: 0 !important;
         height: auto !important;
-        box-shadow: none !important;
         min-height: unset !important;
+        box-shadow: none !important;
+        margin-bottom: 10px;
     }
 
     .stNumberInput input { font-weight: bold; }
@@ -100,6 +102,7 @@ hide_st_style = """
         font-size: 1.4rem;
         font-weight: 800;
         line-height: 1.2;
+        margin-bottom: 5px;
     }
 
     .warmup-box {
@@ -122,7 +125,6 @@ hide_st_style = """
         margin: 2px 0 10px 0;
     }
 
-    /* Info Expander Styling */
     .info-text {
         color: #888;
         font-size: 0.85rem;
@@ -193,30 +195,33 @@ else:
                 st.session_state[anchor_key] = ex_list[0]
             
             st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
+            st.markdown(f'<div class="exercise-title">{st.session_state[anchor_key]}</div>', unsafe_allow_html=True)
             
-            title_col, swap_col = st.columns([0.75, 0.25])
-            title_col.markdown(f'<div class="exercise-title">{st.session_state[anchor_key]}</div>', unsafe_allow_html=True)
-            
+            # --- SWAP INTERACTION (BELOW TITLE) ---
             swap_state_key = f"is_swapping_{muscle}"
             if swap_state_key not in st.session_state:
                 st.session_state[swap_state_key] = False
             
-            with swap_col:
-                st.markdown('<div class="swap-link-wrapper">', unsafe_allow_html=True)
-                if not st.session_state[swap_state_key]:
-                    if st.button("Swap", key=f"btn_swap_{muscle}"):
-                        st.session_state[swap_state_key] = True
-                        st.rerun()
-                else:
-                    selected_ex = st.selectbox("Swap to:", ex_list, index=ex_list.index(st.session_state[anchor_key]), key=f"sb_{muscle}_{st.session_state.selected_day}")
-                    if selected_ex != st.session_state[anchor_key]:
-                        st.session_state[anchor_key] = selected_ex
-                        st.session_state[swap_state_key] = False
-                        st.rerun()
-                    if st.button("Cancel", key=f"cancel_{muscle}"):
-                        st.session_state[swap_state_key] = False
-                        st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('<div class="swap-trigger-wrapper">', unsafe_allow_html=True)
+            if not st.session_state[swap_state_key]:
+                if st.button("Swap exercise", key=f"btn_swap_{muscle}"):
+                    st.session_state[swap_state_key] = True
+                    st.rerun()
+            else:
+                selected_ex = st.selectbox(
+                    "Choose alternative:", 
+                    ex_list, 
+                    index=ex_list.index(st.session_state[anchor_key]),
+                    key=f"sb_{muscle}_{st.session_state.selected_day}"
+                )
+                if selected_ex != st.session_state[anchor_key]:
+                    st.session_state[anchor_key] = selected_ex
+                    st.session_state[swap_state_key] = False
+                    st.rerun()
+                if st.button("Cancel swap", key=f"cancel_{muscle}"):
+                    st.session_state[swap_state_key] = False
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
             current_exercise = st.session_state[anchor_key]
             
@@ -226,7 +231,7 @@ else:
                 with st.expander("▶️ Watch demo"):
                     st.video(format_youtube_url(str(video).strip()))
 
-            # --- INFO EXPANDER ---
+            # Info expander
             with st.expander("ⓘ info"):
                 st.markdown("""
                 <div class="info-text">
