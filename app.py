@@ -21,11 +21,19 @@ hide_st_style = """
     [data-testid="stStatusWidget"] {visibility: hidden !important; display: none !important;}
     .block-container {padding-top: 2rem;}
     
-    /* 2. LOGO STYLING */
-    /* Center the image - no filters needed for transparent PNG */
+    /* 2. LOGO STYLING - THE "STICKER" FIX */
+    /* Forces a white rounded box behind the logo so black ink looks correct in Dark Mode */
     div[data-testid="stImage"] {
+        background-color: white;
+        border-radius: 12px;
+        padding: 10px;
+        margin-bottom: 20px;
         display: flex;
         justify-content: center;
+        width: fit-content;
+        margin-left: auto;
+        margin-right: auto;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Subtle shadow for depth */
     }
     
     /* 3. GENERAL INPUT STYLING */
