@@ -114,18 +114,21 @@ def update_weights(ex_key):
         if val_w2 is None: st.session_state[w2_key] = val_w1
         if val_w3 is None: st.session_state[w3_key] = val_w1
 
-# --- LOAD DATABASE ---
-try:
-    movements_db = pd.read_csv("Pippafit_data.csv")
-except FileNotFoundError:
-    st.error("Error: Pippafit_data.csv not found.")
-    st.stop()
-
 # --- CONNECT TO SHEETS ---
 conn = st.connection("gsheets", type=GSheetsConnection)
+
+# --- LOAD EXERCISE BANK FROM SHEETS ---
+try:
+    movements_db = conn.read(spreadsheet=SHEET_URL, worksheet="Exercise_bank", ttl=0)
+except Exception as e:
+    st.error(f"Error loading Exercise_bank from Google Sheets: {e}")
+    st.stop()
+
+# --- LOAD HISTORY FROM SHEETS ---
 try:
     history_df = conn.read(spreadsheet=SHEET_URL, worksheet="Logs", usecols=[0, 1, 2, 3], ttl=0)
-    if history_df.empty: history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
+    if history_df.empty: 
+        history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
 except Exception:
     history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
 
@@ -198,8 +201,9 @@ else:
                 ex_history['Date'] = pd.to_datetime(ex_history['Date'], errors='coerce')
                 last_date = ex_history.sort_values(by='Date').iloc[-1]['Date']
                 last_session = ex_history[ex_history['Date'].dt.date == last_date.date()]
-                best_set = last_session.sort_values(by=['Weight', 'Reps'], ascending=True).iloc[-1]
-                target_msg = f"Target to beat: {float(best_set['Weight'])}kg x {int(best_set['Reps'])}"
+                if not last_session.empty:
+                    best_set = last_session.sort_values(by=['Weight', 'Reps'], ascending=True).iloc[-1]
+                    target_msg = f"Target to beat: {float(best_set['Weight'])}kg x {int(best_set['Reps'])}"
                 
             tab_log, tab_edit = st.tabs(["Exercise", "Edit"])
 
