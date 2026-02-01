@@ -165,7 +165,10 @@ st.markdown("""
     <h3 style="margin-top:0; color:#D81B60;">🔥 Warm up</h3>
     🏃 <b>10 MINS</b> | Treadmill<br><br>
     <b>VISUALISE</b> the gift you give yourself at <b>65</b>.<br><br>
-    Imagine the <b>OUTCOMES</b> of the effort you put in <b>NOW</b> when you blow out those candles, surrounded by <b>family who loves you.</b><br><br>
+    Imagine the <b>OUTCOMES</b> of the effort you put in <b>NOW</b> when you blow out those candles, surrounded by <b>family who loves you.
+
+So let's get to work!S
+</b><br><br>
     </b>
 </div>
 """, unsafe_allow_html=True)
