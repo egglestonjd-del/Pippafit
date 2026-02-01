@@ -19,6 +19,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 # Fetch existing logs
 try:
+    # We read the sheet into a DataFrame. The 'index' of this DF corresponds to the row number.
     history_df = conn.read(spreadsheet=SHEET_URL, worksheet="Logs", usecols=[0, 1, 2, 3], ttl=0)
     if history_df.empty:
         history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
@@ -45,20 +46,16 @@ if day_data.empty:
 else:
     st.write(f"**Routine for {selected_day}**")
     
-    # Get unique Target Groups in the order they appear in CSV
+    # Get unique Target Groups
     target_groups = list(dict.fromkeys(day_data['Target Group']))
     
     for group in target_groups:
-        # Get all exercises for this specific muscle group
         group_options = day_data[day_data['Target Group'] == group]
-        
-        # Create list of exercise names for the dropdown
         exercise_list = group_options['Exercise'].tolist()
         
-        # --- UI BLOCK FOR THE MUSCLE GROUP ---
         st.markdown(f"### {group}") 
         
-        # Dropdown defaults to index=0 (The top option in your CSV)
+        # Dropdown
         selected_exercise = st.selectbox(
             "Select Movement", 
             exercise_list, 
@@ -67,35 +64,30 @@ else:
             label_visibility="collapsed"
         )
 
-        # --- LOGGING FORM FOR THE SELECTED EXERCISE ---
-        # 1. Get History & Determine "Target to Beat"
+        # --- DATA PREP ---
+        # Get History & Determine "Target to Beat"
         ex_history = history_df[history_df['Exercise'] == selected_exercise].copy()
         last_weight = 0.0
         target_msg = "No history"
         
         if not ex_history.empty:
-            # Convert dates and sort
             ex_history['Date'] = pd.to_datetime(ex_history['Date'], errors='coerce')
             ex_history = ex_history.sort_values(by='Date')
             
-            # Find the Date of the last session
+            # Find stats from the LAST session only
             last_date = ex_history.iloc[-1]['Date']
-            
-            # Filter history to only include sets from that last session
             last_session_df = ex_history[ex_history['Date'].dt.date == last_date.date()]
-            
-            # Find the "Best" set from that session (Heaviest Weight -> Most Reps)
             best_set = last_session_df.sort_values(by=['Weight', 'Reps'], ascending=True).iloc[-1]
             
             last_weight = float(best_set['Weight'])
             last_reps = int(best_set['Reps'])
             target_msg = f"Target to beat: {last_weight}kg x {last_reps}"
             
-        # 2. The Form
+        # --- LOGGING FORM ---
         with st.form(key=f"form_{selected_exercise}"):
             st.caption(f"**{target_msg}**")
             
-            # 3 Sets
+            # 3 Sets Inputs
             c1, c2 = st.columns([1, 1])
             w1 = c1.number_input("Set 1 Kg", value=last_weight, step=1.25, key=f"{selected_exercise}_w1")
             r1 = c2.number_input("Set 1 Reps", value=8, step=1, key=f"{selected_exercise}_r1")
@@ -119,9 +111,38 @@ else:
                 
                 if new_logs:
                     new_df = pd.DataFrame(new_logs)
+                    # Append new logs to the master DF
                     updated_df = pd.concat([history_df, new_df], ignore_index=True)
+                    # Update Google Sheet
                     conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=updated_df)
                     st.success(f"Logged {selected_exercise}!")
                     st.rerun()
-        
+
+        # --- MANAGE HISTORY (DELETE FUNCTION) ---
+        with st.expander(f"Manage History: {selected_exercise}"):
+            # We filter for this exercise, but we keep the original Index so we know which row to delete
+            recent_logs = history_df[history_df['Exercise'] == selected_exercise].sort_values(by='Date', ascending=False).head(5)
+            
+            if recent_logs.empty:
+                st.caption("No logs found.")
+            else:
+                for idx, row in recent_logs.iterrows():
+                    # Format: "Jan 01 12:30 | 50kg x 10"
+                    d_str = pd.to_datetime(row['Date']).strftime("%b %d %H:%M")
+                    display_text = f"{d_str} | **{row['Weight']}kg** x {row['Reps']}"
+                    
+                    # Layout: Text on left, Delete button on right
+                    col_txt, col_btn = st.columns([4, 1])
+                    with col_txt:
+                        st.markdown(display_text)
+                    with col_btn:
+                        # Unique key is crucial here
+                        if st.button("❌", key=f"del_{idx}"):
+                            # Drop the row from the master dataframe using its index
+                            history_df = history_df.drop(idx)
+                            # Push the entire updated dataframe back to Google Sheets
+                            conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=history_df)
+                            st.toast(f"Deleted entry!", icon="🗑️")
+                            st.rerun()
+
         st.divider()
