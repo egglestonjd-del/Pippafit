@@ -23,22 +23,39 @@ hide_st_style = """
         font-weight: bold;
     }
     
-    /* 3. TABS STYLING */
-    button[data-baseweb="tab"] {
-        font-size: 16px;
-        font-weight: 600;
-        width: 50%;
+    /* 3. TABS STYLING (The 80/20 Split) */
+    
+    /* Target the container of the tabs to ensure they span full width */
+    [data-baseweb="tab-list"] {
+        width: 100%;
+        display: flex;
+    }
+
+    /* TAB 1: "Exercise" */
+    button[data-baseweb="tab"]:nth-of-type(1) {
+        width: 80% !important;
+        justify-content: flex-start !important; /* Left Align */
+        font-size: 18px !important;
+        font-weight: 800 !important;
+        padding-left: 10px !important;
+    }
+
+    /* TAB 2: "Edit" */
+    button[data-baseweb="tab"]:nth-of-type(2) {
+        width: 20% !important;
+        justify-content: flex-end !important; /* Right Align */
+        font-size: 14px !important;
+        padding-right: 10px !important;
+        color: #888; /* Slightly dimmer to de-emphasize */
     }
 
     /* 4. EDIT MODE STYLING (The Yellow Border) */
-    /* This targets only inputs with labels "W" or "R" (found only in Edit Tab) */
     input[aria-label="W"], input[aria-label="R"] {
-        border: 2px solid #ffbd45 !important;   /* Golden Yellow Border */
-        background-color: #fffbf0 !important;   /* Pale Yellow Background */
-        color: #b36b00 !important;              /* Darker Amber Text */
+        border: 2px solid #ffbd45 !important;   
+        background-color: #fffbf0 !important;   
+        color: #b36b00 !important;              
     }
     
-    /* Style the input container slightly to match */
     div[data-testid="stNumberInput"]:has(input[aria-label="W"]),
     div[data-testid="stNumberInput"]:has(input[aria-label="R"]) {
         border-radius: 5px;
@@ -139,9 +156,10 @@ else:
             target_msg = f"Target to beat: {float(best_set['Weight'])}kg x {int(best_set['Reps'])}"
             
         # --- TAB INTERFACE ---
-        tab_log, tab_edit = st.tabs(["Log", "Edit"])
+        # Renamed 'Log' to 'Exercise'
+        tab_log, tab_edit = st.tabs(["Exercise", "Edit"])
 
-        # --- TAB 1: LOGGING (Clean / Standard) ---
+        # --- TAB 1: EXERCISE (Clean / Standard) ---
         with tab_log:
             st.caption(f"**{target_msg}**")
             
@@ -199,7 +217,7 @@ else:
                     # Columns: Weight | Reps | Save | Delete
                     hc1, hc2, hc3, hc4 = st.columns([1.5, 1.5, 0.7, 0.7], gap="small")
                     
-                    # Edit Inputs (Labels "W" and "R" trigger the CSS above)
+                    # Edit Inputs
                     new_w = hc1.number_input("W", value=float(row['Weight']), step=1.25, key=f"edit_w_{idx}", label_visibility="collapsed")
                     new_r = hc2.number_input("R", value=int(row['Reps']), step=1, key=f"edit_r_{idx}", label_visibility="collapsed")
                     
