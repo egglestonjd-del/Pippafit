@@ -57,24 +57,16 @@ hide_st_style = """
         .logo-dark { display: block; }
     }
     
-    /* Global Button Base */
-    div.stButton > button {
-        border-radius: 8px;
-    }
-
-    /* Primary Buttons (Day Selected / Save) */
     div.stButton > button[kind="primary"] {
         background-color: #D81B60 !important;
         border-color: #D81B60 !important;
         color: white !important;
     }
 
-    /* Secondary Day Buttons */
     div.stButton > button[kind="secondary"] {
         border: 1px solid #d0d0d0 !important;
     }
 
-    /* SPECIFIC SWAP LINK - Borderless and Small */
     .swap-link-wrapper div.stButton > button {
         border: none !important;
         background-color: transparent !important;
@@ -169,7 +161,7 @@ for i, day in enumerate(days):
         st.session_state.selected_day = day
         st.rerun()
 
-# --- WARM UP ---
+# --- GLOBAL TREADMILL WARM UP ---
 st.markdown("""
 <div class="warmup-box">
     <h3 style="margin-top:0; color:#D81B60;">🔥 Warm up</h3>
@@ -196,7 +188,6 @@ else:
             
             st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
             
-            # Layout: Title Left, Tiny Swap Link Right
             title_col, swap_col = st.columns([0.75, 0.25])
             title_col.markdown(f'<div class="exercise-title">{st.session_state[anchor_key]}</div>', unsafe_allow_html=True)
             
@@ -205,19 +196,13 @@ else:
                 st.session_state[swap_state_key] = False
             
             with swap_col:
-                # Use wrapper class to target CSS
                 st.markdown('<div class="swap-link-wrapper">', unsafe_allow_html=True)
                 if not st.session_state[swap_state_key]:
                     if st.button("Swap", key=f"btn_swap_{muscle}"):
                         st.session_state[swap_state_key] = True
                         st.rerun()
                 else:
-                    selected_ex = st.selectbox(
-                        "Swap to:", 
-                        ex_list, 
-                        index=ex_list.index(st.session_state[anchor_key]),
-                        key=f"sb_{muscle}_{st.session_state.selected_day}"
-                    )
+                    selected_ex = st.selectbox("Swap to:", ex_list, index=ex_list.index(st.session_state[anchor_key]), key=f"sb_{muscle}_{st.session_state.selected_day}")
                     if selected_ex != st.session_state[anchor_key]:
                         st.session_state[anchor_key] = selected_ex
                         st.session_state[swap_state_key] = False
@@ -229,10 +214,29 @@ else:
 
             current_exercise = st.session_state[anchor_key]
             
+            # Watch demo
             video = options[options['Exercise'] == current_exercise].iloc[0]['Video Link']
             if pd.notna(video) and str(video).strip():
                 with st.expander("▶️ Watch demo"):
                     st.video(format_youtube_url(str(video).strip()))
+
+            # --- EXERCISE SPECIFIC WARM UP / WEIGHT SELECTION ---
+            with st.expander("🔥 Warm up"):
+                st.markdown("""
+                **Working Weight Selection**
+                * Choose a resistance you can move for **5–18 reps** only.
+                * If you exceed 18 reps, **increase weight**.
+                * If you fail before 5 reps, **reduce weight**.
+                * Final reps should be difficult but controlled, with good form.
+
+                **Warm-Up Protocol**
+                1. Start at **50%** of your estimated max.
+                2. Perform **8–12 easy reps**.
+                3. Increase weight in **small steps**.
+                4. Stop when the weight feels challenging but sustainable for the target rep range.
+                
+                *This is your working weight.*
+                """)
 
             ex_history = history_df[history_df['Exercise'] == current_exercise].copy()
             target_msg = "No history"
