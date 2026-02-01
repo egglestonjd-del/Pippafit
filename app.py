@@ -110,14 +110,12 @@ if 'selected_day' not in st.session_state:
     else:
         st.session_state.selected_day = "Monday" 
 
-# Create 3 columns. Streamlit handles stacking automatically on mobile.
 col_mon, col_wed, col_sat = st.columns(3)
 
 style_mon = "primary" if st.session_state.selected_day == "Monday" else "secondary"
 style_wed = "primary" if st.session_state.selected_day == "Wednesday" else "secondary"
 style_sat = "primary" if st.session_state.selected_day == "Saturday" else "secondary"
 
-# use_container_width=True forces the button to expand to the full width of its column
 if col_mon.button("Monday", type=style_mon, use_container_width=True):
     st.session_state.selected_day = "Monday"
     st.rerun()
@@ -139,109 +137,113 @@ else:
     target_groups = list(dict.fromkeys(day_data['Target Group']))
     
     for group in target_groups:
-        group_options = day_data[day_data['Target Group'] == group]
-        exercise_list = group_options['Exercise'].tolist()
         
-        st.markdown(f"### {group}") 
-        
-        selected_exercise = st.selectbox(
-            "Select Movement", 
-            exercise_list, 
-            index=0, 
-            key=f"select_{group}_{st.session_state.selected_day}",
-            label_visibility="collapsed"
-        )
-
-        current_exercise_row = group_options[group_options['Exercise'] == selected_exercise]
-        if not current_exercise_row.empty:
-            video_url = current_exercise_row.iloc[0]['Video Link']
-            if pd.notna(video_url) and str(video_url).startswith("http"):
-                with st.expander("▶️ Watch Tutorial"):
-                    st.video(video_url)
-
-        ex_history = history_df[history_df['Exercise'] == selected_exercise].copy()
-        target_msg = "No history"
-        
-        if not ex_history.empty:
-            ex_history['Date'] = pd.to_datetime(ex_history['Date'], errors='coerce')
-            last_date = ex_history.sort_values(by='Date').iloc[-1]['Date']
-            last_session = ex_history[ex_history['Date'].dt.date == last_date.date()]
-            best_set = last_session.sort_values(by=['Weight', 'Reps'], ascending=True).iloc[-1]
-            target_msg = f"Target to beat: {float(best_set['Weight'])}kg x {int(best_set['Reps'])}"
+        # --- START CARD CONTAINER ---
+        with st.container(border=True):
             
-        # --- TAB INTERFACE ---
-        tab_log, tab_edit = st.tabs(["Exercise", "Edit"])
-
-        # --- TAB 1: EXERCISE ---
-        with tab_log:
-            st.caption(f"**{target_msg}**")
+            group_options = day_data[day_data['Target Group'] == group]
+            exercise_list = group_options['Exercise'].tolist()
             
-            k_w1, k_r1 = f"{selected_exercise}_w1", f"{selected_exercise}_r1"
-            k_w2, k_r2 = f"{selected_exercise}_w2", f"{selected_exercise}_r2"
-            k_w3, k_r3 = f"{selected_exercise}_w3", f"{selected_exercise}_r3"
-
-            c1, c2 = st.columns([1, 1], gap="medium")
-            c1.number_input("Set 1 | Enter weight", value=None, step=1.25, key=k_w1, on_change=update_weights, args=(selected_exercise,))
-            c2.number_input("Set 1 | Reps", value=None, step=1, key=k_r1)
+            st.markdown(f"### {group}") 
             
-            c3, c4 = st.columns([1, 1], gap="medium")
-            c3.number_input("Set 2 | Enter weight", value=None, step=1.25, key=k_w2)
-            c4.number_input("Set 2 | Reps", value=None, step=1, key=k_r2)
+            selected_exercise = st.selectbox(
+                "Select Movement", 
+                exercise_list, 
+                index=0, 
+                key=f"select_{group}_{st.session_state.selected_day}",
+                label_visibility="collapsed"
+            )
+
+            current_exercise_row = group_options[group_options['Exercise'] == selected_exercise]
+            if not current_exercise_row.empty:
+                video_url = current_exercise_row.iloc[0]['Video Link']
+                if pd.notna(video_url) and str(video_url).startswith("http"):
+                    with st.expander("▶️ Watch Tutorial"):
+                        st.video(video_url)
+
+            ex_history = history_df[history_df['Exercise'] == selected_exercise].copy()
+            target_msg = "No history"
             
-            c5, c6 = st.columns([1, 1], gap="medium")
-            c5.number_input("Set 3 | Enter weight", value=None, step=1.25, key=k_w3)
-            c6.number_input("Set 3 | Reps", value=None, step=1, key=k_r3)
-
-            # LOG Button (Also made dynamic width for consistency)
-            if st.button(f"LOG {selected_exercise.upper()}", type="primary", key=f"btn_{selected_exercise}", use_container_width=True):
-                w1, r1 = st.session_state.get(k_w1), st.session_state.get(k_r1)
-                w2, r2 = st.session_state.get(k_w2), st.session_state.get(k_r2)
-                w3, r3 = st.session_state.get(k_w3), st.session_state.get(k_r3)
-
-                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                new_logs = []
-
-                if r1 is not None and r1 > 0: new_logs.append({"Date": now_str, "Exercise": selected_exercise, "Weight": w1 if w1 else 0, "Reps": r1})
-                if r2 is not None and r2 > 0: new_logs.append({"Date": now_str, "Exercise": selected_exercise, "Weight": w2 if w2 else 0, "Reps": r2})
-                if r3 is not None and r3 > 0: new_logs.append({"Date": now_str, "Exercise": selected_exercise, "Weight": w3 if w3 else 0, "Reps": r3})
+            if not ex_history.empty:
+                ex_history['Date'] = pd.to_datetime(ex_history['Date'], errors='coerce')
+                last_date = ex_history.sort_values(by='Date').iloc[-1]['Date']
+                last_session = ex_history[ex_history['Date'].dt.date == last_date.date()]
+                best_set = last_session.sort_values(by=['Weight', 'Reps'], ascending=True).iloc[-1]
+                target_msg = f"Target to beat: {float(best_set['Weight'])}kg x {int(best_set['Reps'])}"
                 
-                if new_logs:
-                    new_df = pd.DataFrame(new_logs)
-                    updated_df = pd.concat([history_df, new_df], ignore_index=True)
-                    conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=updated_df)
-                    st.session_state.celebrate = True
-                    st.rerun()
+            # --- TAB INTERFACE ---
+            tab_log, tab_edit = st.tabs(["Exercise", "Edit"])
 
-        # --- TAB 2: EDIT HISTORY ---
-        with tab_edit:
-            recent_logs = history_df[history_df['Exercise'] == selected_exercise].sort_values(by='Date', ascending=False).head(5)
-            
-            if recent_logs.empty:
-                st.info("No logs to edit.")
-            else:
-                st.caption("📝 **Editing past entries**")
-                for idx, row in recent_logs.iterrows():
-                    d_str = pd.to_datetime(row['Date']).strftime("%b %d %H:%M")
-                    st.caption(f"**{d_str}**")
+            # --- TAB 1: EXERCISE ---
+            with tab_log:
+                st.caption(f"**{target_msg}**")
+                
+                k_w1, k_r1 = f"{selected_exercise}_w1", f"{selected_exercise}_r1"
+                k_w2, k_r2 = f"{selected_exercise}_w2", f"{selected_exercise}_r2"
+                k_w3, k_r3 = f"{selected_exercise}_w3", f"{selected_exercise}_r3"
+
+                c1, c2 = st.columns([1, 1], gap="medium")
+                c1.number_input("Set 1 | Enter weight", value=None, step=1.25, key=k_w1, on_change=update_weights, args=(selected_exercise,))
+                c2.number_input("Set 1 | Reps", value=None, step=1, key=k_r1)
+                
+                c3, c4 = st.columns([1, 1], gap="medium")
+                c3.number_input("Set 2 | Enter weight", value=None, step=1.25, key=k_w2)
+                c4.number_input("Set 2 | Reps", value=None, step=1, key=k_r2)
+                
+                c5, c6 = st.columns([1, 1], gap="medium")
+                c5.number_input("Set 3 | Enter weight", value=None, step=1.25, key=k_w3)
+                c6.number_input("Set 3 | Reps", value=None, step=1, key=k_r3)
+
+                # LOG Button (Also made dynamic width for consistency)
+                if st.button(f"LOG {selected_exercise.upper()}", type="primary", key=f"btn_{selected_exercise}", use_container_width=True):
+                    w1, r1 = st.session_state.get(k_w1), st.session_state.get(k_r1)
+                    w2, r2 = st.session_state.get(k_w2), st.session_state.get(k_r2)
+                    w3, r3 = st.session_state.get(k_w3), st.session_state.get(k_r3)
+
+                    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    new_logs = []
+
+                    if r1 is not None and r1 > 0: new_logs.append({"Date": now_str, "Exercise": selected_exercise, "Weight": w1 if w1 else 0, "Reps": r1})
+                    if r2 is not None and r2 > 0: new_logs.append({"Date": now_str, "Exercise": selected_exercise, "Weight": w2 if w2 else 0, "Reps": r2})
+                    if r3 is not None and r3 > 0: new_logs.append({"Date": now_str, "Exercise": selected_exercise, "Weight": w3 if w3 else 0, "Reps": r3})
                     
-                    hc1, hc2, hc3, hc4 = st.columns([1.5, 1.5, 0.7, 0.7], gap="small")
-                    
-                    new_w = hc1.number_input("W", value=float(row['Weight']), step=1.25, key=f"edit_w_{idx}", label_visibility="collapsed")
-                    new_r = hc2.number_input("R", value=int(row['Reps']), step=1, key=f"edit_r_{idx}", label_visibility="collapsed")
-                    
-                    if hc3.button("💾", key=f"save_{idx}", help="Save Changes"):
-                        history_df.at[idx, 'Weight'] = new_w
-                        history_df.at[idx, 'Reps'] = new_r
-                        conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=history_df)
-                        st.toast("Entry Updated!", icon="✅")
+                    if new_logs:
+                        new_df = pd.DataFrame(new_logs)
+                        updated_df = pd.concat([history_df, new_df], ignore_index=True)
+                        conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=updated_df)
+                        st.session_state.celebrate = True
                         st.rerun()
 
-                    if hc4.button("❌", key=f"del_{idx}", help="Delete Entry"):
-                        history_df = history_df.drop(idx)
-                        conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=history_df)
-                        st.toast("Deleted!", icon="🗑️")
-                        st.rerun()
-                    
-                    st.divider()
+            # --- TAB 2: EDIT HISTORY ---
+            with tab_edit:
+                recent_logs = history_df[history_df['Exercise'] == selected_exercise].sort_values(by='Date', ascending=False).head(5)
+                
+                if recent_logs.empty:
+                    st.info("No logs to edit.")
+                else:
+                    st.caption("📝 **Editing past entries**")
+                    for idx, row in recent_logs.iterrows():
+                        d_str = pd.to_datetime(row['Date']).strftime("%b %d %H:%M")
+                        st.caption(f"**{d_str}**")
+                        
+                        hc1, hc2, hc3, hc4 = st.columns([1.5, 1.5, 0.7, 0.7], gap="small")
+                        
+                        new_w = hc1.number_input("W", value=float(row['Weight']), step=1.25, key=f"edit_w_{idx}", label_visibility="collapsed")
+                        new_r = hc2.number_input("R", value=int(row['Reps']), step=1, key=f"edit_r_{idx}", label_visibility="collapsed")
+                        
+                        if hc3.button("💾", key=f"save_{idx}", help="Save Changes"):
+                            history_df.at[idx, 'Weight'] = new_w
+                            history_df.at[idx, 'Reps'] = new_r
+                            conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=history_df)
+                            st.toast("Entry Updated!", icon="✅")
+                            st.rerun()
 
-        st.divider()
+                        if hc4.button("❌", key=f"del_{idx}", help="Delete Entry"):
+                            history_df = history_df.drop(idx)
+                            conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=history_df)
+                            st.toast("Deleted!", icon="🗑️")
+                            st.rerun()
+                        
+                        st.divider()
+
+        # No divider needed here as the border container separates items
