@@ -79,7 +79,7 @@ hide_st_style = """
 
     /* INLINE SELECTBOX CSS */
     div[data-testid="stSelectbox"] > label {
-        display: none; /* Hide default label to use our custom inline one if needed, or... */
+        display: none;
     }
     
     .inline-label-container {
@@ -190,9 +190,9 @@ else:
             st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
             st.markdown(f'<div class="exercise-title">{st.session_state[sb_key]}</div>', unsafe_allow_html=True)
             
-            # CUSTOM INLINE CONTAINER
-            st.markdown('<div class="inline-label-container"><label>Swap exercise</label>', unsafe_allow_html=True)
-            selected_ex = st.selectbox("Swap exercise", ex_list, key=sb_key, label_visibility="collapsed")
+            # INLINE SELECTOR WITH UPDATED LABEL
+            st.markdown('<div class="inline-label-container"><label>Swap exercise (optional)</label>', unsafe_allow_html=True)
+            selected_ex = st.selectbox("Swap exercise (optional)", ex_list, key=sb_key, label_visibility="collapsed")
             st.markdown('</div>', unsafe_allow_html=True)
             
             raw_video = options[options['Exercise'] == selected_ex].iloc[0]['Video Link']
