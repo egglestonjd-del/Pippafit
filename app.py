@@ -32,7 +32,7 @@ hide_st_style = """
     
     /* 2. THEME-AWARE LOGO SWITCHER */
     .logo-container {
-        margin-bottom: 50px; /* INCREASED PADDING HERE */
+        margin-bottom: 50px;
         display: flex;
         justify-content: center;
     }
@@ -44,7 +44,19 @@ hide_st_style = """
         .logo-dark { display: block; }
     }
     
-    /* 3. GENERAL INPUT STYLING */
+    /* 3. ACCESSIBLE PINK FEATURE COLOR (#D81B60) */
+    /* Primary Buttons */
+    div.stButton > button[kind="primary"] {
+        background-color: #D81B60 !important;
+        border-color: #D81B60 !important;
+        color: white !important;
+    }
+    div.stButton > button[kind="primary"]:hover {
+        background-color: #AD1457 !important; /* Slightly darker pink for hover */
+        border-color: #AD1457 !important;
+    }
+
+    /* 4. GENERAL INPUT STYLING */
     .stNumberInput input {
         font-weight: bold;
         background-color: transparent;
@@ -56,7 +68,7 @@ hide_st_style = """
         padding: 2px;
     }
     
-    /* 4. TABS STYLING */
+    /* 5. TABS STYLING */
     [data-baseweb="tab-list"] {
         width: 100%;
         display: flex;
@@ -76,7 +88,7 @@ hide_st_style = """
         color: #888; 
     }
 
-    /* 5. EDIT MODE STYLING */
+    /* 6. EDIT MODE STYLING */
     input[aria-label="W"], input[aria-label="R"] {
         color: #b36b00 !important;              
     }
@@ -86,7 +98,7 @@ hide_st_style = """
         background-color: #fffbf0 !important;   
     }
     
-    /* 6. TIGHTEN SUB-BOX HEADERS */
+    /* 7. TIGHTEN SUB-BOX HEADERS */
     div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
         gap: 0.5rem;
     }
