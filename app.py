@@ -21,11 +21,22 @@ hide_st_style = """
     [data-testid="stStatusWidget"] {visibility: hidden !important; display: none !important;}
     .block-container {padding-top: 2rem;}
     
-    /* 2. LOGO STYLING (The Dark Mode Fix) */
-    /* This targets the logo image and inverts it (Black -> White) ONLY in Dark Mode */
+    /* 2. LOGO STYLING (The Better Fix) */
+    /* Center the image */
+    div[data-testid="stImage"] {
+        display: flex;
+        justify-content: center;
+    }
+    
+    /* Dark Mode Handling: 
+       If the logo has a white background, we use 'mix-blend-mode: screen' 
+       to make the black ink turn white and the white background transparent.
+       Note: This works best if the logo is black-on-white.
+    */
     @media (prefers-color-scheme: dark) {
         [data-testid="stImage"] img {
-            filter: invert(1) brightness(2);
+            filter: invert(1) grayscale(100%) brightness(200%);
+            mix-blend-mode: screen; 
         }
     }
     
@@ -82,7 +93,6 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 # --- EMAIL FUNCTION ---
 def send_workout_email(dataframe):
     try:
-        # Filter for TODAY's logs only
         today_date = datetime.now().date()
         dataframe['Date'] = pd.to_datetime(dataframe['Date'], errors='coerce')
         todays_logs = dataframe[dataframe['Date'].dt.date == today_date]
@@ -90,10 +100,7 @@ def send_workout_email(dataframe):
         if todays_logs.empty:
             return "No logs found for today."
 
-        # Construct Email Body
         lines = [f"Workout Summary for {today_date.strftime('%A, %d %B %Y')}\n"]
-        
-        # Group by Exercise
         exercises = todays_logs['Exercise'].unique()
         for ex in exercises:
             lines.append(f"\n{ex}:")
@@ -102,8 +109,6 @@ def send_workout_email(dataframe):
                 lines.append(f" - {row['Weight']}kg x {row['Reps']} reps")
         
         body = "\n".join(lines)
-        
-        # Send Email
         sender = st.secrets["email"]["sender"]
         password = st.secrets["email"]["password"]
         receiver = st.secrets["email"]["receiver"]
@@ -114,7 +119,6 @@ def send_workout_email(dataframe):
         msg['Subject'] = f"Pippafit Log: {today_date}"
         msg.attach(MIMEText(body, 'plain'))
         
-        # Connect to Gmail SMTP (Standard Port 587)
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(sender, password)
@@ -151,13 +155,11 @@ try:
 except Exception:
     history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
 
-# --- UI HEADER (LOGO ADDED HERE) ---
-# We replaced st.title() with st.image()
-# The 'width' parameter controls the size (250px is usually good for a centered logo)
+# --- UI HEADER ---
 try:
     st.image("Pippafit.png", width=250) 
 except:
-    st.title("Pippafit 65") # Fallback if image fails to load
+    st.title("Pippafit 65") 
 
 # --- DAY SELECTION ---
 if 'selected_day' not in st.session_state:
