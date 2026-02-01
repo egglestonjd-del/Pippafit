@@ -45,14 +45,13 @@ hide_st_style = """
     }
     
     /* 3. ACCESSIBLE PINK FEATURE COLOR (#D81B60) */
-    /* Primary Buttons */
     div.stButton > button[kind="primary"] {
         background-color: #D81B60 !important;
         border-color: #D81B60 !important;
         color: white !important;
     }
     div.stButton > button[kind="primary"]:hover {
-        background-color: #AD1457 !important; /* Slightly darker pink for hover */
+        background-color: #AD1457 !important;
         border-color: #AD1457 !important;
     }
 
@@ -231,7 +230,7 @@ else:
             if not current_exercise_row.empty:
                 video_url = current_exercise_row.iloc[0]['Video Link']
                 if pd.notna(video_url) and str(video_url).startswith("http"):
-                    with st.expander("▶️ Watch Tutorial"):
+                    with st.expander("▶️ Exercise tutorial"):
                         st.video(video_url)
 
             ex_history = history_df[history_df['Exercise'] == selected_exercise].copy()
@@ -317,7 +316,7 @@ else:
                         st.divider()
     
     st.divider()
-    if st.button("WORKOUT COMPLETED!!!", type="primary", use_container_width=True):
+    if st.button("Complete workout", type="primary", use_container_width=True):
         st.balloons()
         status = send_workout_email(history_df)
         if "Email sent" in status:
