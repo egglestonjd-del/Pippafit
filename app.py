@@ -3,7 +3,7 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 import base64
-import re
+import time  # NEW: Added for rate-limit protection
 
 # --- CONFIG ---
 st.set_page_config(page_title="Pippafit 65", page_icon="💪")
@@ -77,7 +77,6 @@ hide_st_style = """
         line-height: 1.2;
     }
 
-    /* INLINE SELECTBOX CSS */
     div[data-testid="stSelectbox"] > label {
         display: none;
     }
@@ -165,10 +164,8 @@ st.markdown("""
     <h3 style="margin-top:0; color:#D81B60;">🔥 Warm up</h3>
     🏃 <b>10 MINS</b> | Treadmill<br><br>
     <b>VISUALISE</b> the gift you give yourself at <b>65</b>.<br><br>
-    Imagine the <b>OUTCOMES</b> of the effort you put in <b>NOW</b> when you blow out those candles, surrounded by <b>family who loves you.
-
-So let's get to work!
-    </b>
+    Imagine the <b>OUTCOMES</b> of the effort you put in <b>NOW</b> when you blow out those candles, surrounded by <b>family who loves you.</b><br><br>
+    That’s going to be <b>pretty sweet.</b>
 </div>
 """, unsafe_allow_html=True)
 
@@ -192,7 +189,6 @@ else:
             st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
             st.markdown(f'<div class="exercise-title">{st.session_state[sb_key]}</div>', unsafe_allow_html=True)
             
-            # INLINE SELECTOR
             st.markdown('<div class="inline-label-container"><label>Swap exercise (optional)</label>', unsafe_allow_html=True)
             selected_ex = st.selectbox("Swap exercise (optional)", ex_list, key=sb_key, label_visibility="collapsed")
             st.markdown('</div>', unsafe_allow_html=True)
@@ -237,7 +233,10 @@ else:
                                 "Reps": val_r
                             })
                     if new_rows:
-                        conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=pd.concat([history_df, pd.DataFrame(new_rows)], ignore_index=True))
+                        # NEW: Cooldown to prevent "Bot" flagging
+                        with st.spinner("Syncing with Google..."):
+                            time.sleep(0.5) 
+                            conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=pd.concat([history_df, pd.DataFrame(new_rows)], ignore_index=True))
                         st.toast(f"{selected_ex} logged!", icon="✅")
                         st.rerun()
 
