@@ -18,47 +18,51 @@ hide_st_style = """
     [data-testid="stStatusWidget"] {visibility: hidden !important; display: none !important;}
     .block-container {padding-top: 2rem;}
     
-    /* 2. GENERAL INPUT STYLING */
+    /* 2. GENERAL INPUT STYLING (Contrast Fix) */
     .stNumberInput input {
         font-weight: bold;
+        background-color: transparent; /* Let system theme handle bg */
+    }
+    
+    /* Add a visible border to ALL inputs to fix Light Mode visibility */
+    div[data-testid="stNumberInput"] {
+        border: 1px solid #d0d0d0; /* Light Grey Border */
+        border-radius: 8px;        /* Rounded Corners */
+        box-shadow: 0px 1px 3px rgba(0,0,0,0.05); /* Subtle shadow */
+        padding: 2px;
     }
     
     /* 3. TABS STYLING (The 80/20 Split) */
-    
-    /* Target the container of the tabs to ensure they span full width */
     [data-baseweb="tab-list"] {
         width: 100%;
         display: flex;
     }
-
     /* TAB 1: "Exercise" */
     button[data-baseweb="tab"]:nth-of-type(1) {
         width: 80% !important;
-        justify-content: flex-start !important; /* Left Align */
+        justify-content: flex-start !important;
         font-size: 18px !important;
         font-weight: 800 !important;
         padding-left: 10px !important;
     }
-
     /* TAB 2: "Edit" */
     button[data-baseweb="tab"]:nth-of-type(2) {
         width: 20% !important;
-        justify-content: flex-end !important; /* Right Align */
+        justify-content: flex-end !important;
         font-size: 14px !important;
         padding-right: 10px !important;
-        color: #888; /* Slightly dimmer to de-emphasize */
+        color: #888; 
     }
 
     /* 4. EDIT MODE STYLING (The Yellow Border) */
+    /* Overrides the general border above specifically for Edit mode fields */
     input[aria-label="W"], input[aria-label="R"] {
-        border: 2px solid #ffbd45 !important;   
-        background-color: #fffbf0 !important;   
         color: #b36b00 !important;              
     }
-    
     div[data-testid="stNumberInput"]:has(input[aria-label="W"]),
     div[data-testid="stNumberInput"]:has(input[aria-label="R"]) {
-        border-radius: 5px;
+        border: 2px solid #ffbd45 !important;   
+        background-color: #fffbf0 !important;   
     }
     </style>
 """
@@ -156,10 +160,9 @@ else:
             target_msg = f"Target to beat: {float(best_set['Weight'])}kg x {int(best_set['Reps'])}"
             
         # --- TAB INTERFACE ---
-        # Renamed 'Log' to 'Exercise'
         tab_log, tab_edit = st.tabs(["Exercise", "Edit"])
 
-        # --- TAB 1: EXERCISE (Clean / Standard) ---
+        # --- TAB 1: EXERCISE ---
         with tab_log:
             st.caption(f"**{target_msg}**")
             
@@ -202,7 +205,7 @@ else:
                     st.session_state.celebrate = True
                     st.rerun()
 
-        # --- TAB 2: EDIT HISTORY (Yellow/Warning Style) ---
+        # --- TAB 2: EDIT HISTORY ---
         with tab_edit:
             recent_logs = history_df[history_df['Exercise'] == selected_exercise].sort_values(by='Date', ascending=False).head(5)
             
@@ -214,14 +217,11 @@ else:
                     d_str = pd.to_datetime(row['Date']).strftime("%b %d %H:%M")
                     st.caption(f"**{d_str}**")
                     
-                    # Columns: Weight | Reps | Save | Delete
                     hc1, hc2, hc3, hc4 = st.columns([1.5, 1.5, 0.7, 0.7], gap="small")
                     
-                    # Edit Inputs
                     new_w = hc1.number_input("W", value=float(row['Weight']), step=1.25, key=f"edit_w_{idx}", label_visibility="collapsed")
                     new_r = hc2.number_input("R", value=int(row['Reps']), step=1, key=f"edit_r_{idx}", label_visibility="collapsed")
                     
-                    # Update Button
                     if hc3.button("💾", key=f"save_{idx}", help="Save Changes"):
                         history_df.at[idx, 'Weight'] = new_w
                         history_df.at[idx, 'Reps'] = new_r
@@ -229,7 +229,6 @@ else:
                         st.toast("Entry Updated!", icon="✅")
                         st.rerun()
 
-                    # Delete Button
                     if hc4.button("❌", key=f"del_{idx}", help="Delete Entry"):
                         history_df = history_df.drop(idx)
                         conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=history_df)
