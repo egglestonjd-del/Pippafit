@@ -12,7 +12,6 @@ st.set_page_config(page_title="Pippafit 65", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 
 # --- HELPER: IMAGE TO BASE64 ---
-# This ensures images display correctly in HTML without path issues
 def get_base64_image(image_path):
     try:
         with open(image_path, "rb") as img_file:
@@ -32,11 +31,14 @@ hide_st_style = """
     .block-container {padding-top: 2rem;}
     
     /* 2. THEME-AWARE LOGO SWITCHER */
-    /* By default, show Light logo, hide Dark logo */
+    .logo-container {
+        margin-bottom: 50px; /* INCREASED PADDING HERE */
+        display: flex;
+        justify-content: center;
+    }
     .logo-light { display: block; margin: auto; width: 250px; }
     .logo-dark { display: none; margin: auto; width: 250px; }
     
-    /* If user prefers Dark Mode, swap them */
     @media (prefers-color-scheme: dark) {
         .logo-light { display: none; }
         .logo-dark { display: block; }
@@ -157,16 +159,14 @@ try:
 except Exception:
     history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
 
-# --- UI HEADER (THEME AWARE) ---
-# We load both images as base64 strings
+# --- UI HEADER ---
 img_light = get_base64_image("Pippafit_Light.png")
 img_dark = get_base64_image("Pippafit_Dark.png")
 
-# If images exist, render the HTML that swaps them
 if img_light and img_dark:
     st.markdown(
         f"""
-        <div>
+        <div class="logo-container">
             <img src="data:image/png;base64,{img_light}" class="logo-light">
             <img src="data:image/png;base64,{img_dark}" class="logo-dark">
         </div>
@@ -174,7 +174,6 @@ if img_light and img_dark:
         unsafe_allow_html=True
     )
 else:
-    # Fallback if files are missing
     st.title("Pippafit 65") 
 
 # --- DAY SELECTION ---
