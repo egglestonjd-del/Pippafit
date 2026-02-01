@@ -7,28 +7,26 @@ from datetime import datetime
 st.set_page_config(page_title="Pippafit Tracker", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 
-# --- REMOVE ALL STREAMLIT BRANDING & OVERLAYS ---
-# This CSS targets the header, footer, main menu, and the specific "Manage App" toolbar
+# --- CUSTOM CSS: HIDE BRANDING & FORCE MOBILE COLUMNS ---
 hide_st_style = """
     <style>
-    /* Hide the top header line */
+    /* 1. Hide Streamlit Branding (Header, Footer, Menu, Toolbar) */
     header {visibility: hidden;}
-    
-    /* Hide the main menu (hamburger icon) */
     #MainMenu {visibility: hidden;}
-    
-    /* Hide the footer (Made with Streamlit) */
     footer {visibility: hidden;}
-    
-    /* Hide the "Manage App" / "Viewer Badge" in bottom right */
     [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
-    
-    /* Hide the colored running man / status animation top right */
     [data-testid="stStatusWidget"] {visibility: hidden !important; display: none !important;}
     
-    /* Remove top padding since header is gone */
+    /* 2. Fix Top Padding */
     .block-container {
         padding-top: 2rem;
+    }
+    
+    /* 3. FORCE COLUMNS SIDE-BY-SIDE ON MOBILE */
+    /* Streamlit usually stacks columns on mobile. This overrides that behavior. */
+    [data-testid="column"] {
+        min-width: 0px !important;
+        flex: 1 !important;
     }
     </style>
 """
@@ -121,6 +119,7 @@ else:
             st.caption(f"**{target_msg}**")
             
             # 3 Sets Inputs
+            # The CSS above ensures these columns stay side-by-side on mobile
             c1, c2 = st.columns([1, 1])
             w1 = c1.number_input("Set 1 Kg", value=last_weight, step=1.25, key=f"{selected_exercise}_w1")
             r1 = c2.number_input("Set 1 Reps", value=8, step=1, key=f"{selected_exercise}_r1")
