@@ -21,20 +21,21 @@ hide_st_style = """
     [data-testid="stStatusWidget"] {visibility: hidden !important; display: none !important;}
     .block-container {padding-top: 2rem;}
     
-    /* 2. LOGO STYLING - CENTERED STICKER FIX */
+    /* 2. LOGO STYLING - STICKER LOOK */
     div[data-testid="stImage"] {
         background-color: white;
         border-radius: 12px;
         padding: 10px;
         margin-bottom: 20px;
         
-        /* Centering Magic */
-        display: block;
-        margin-left: auto !important;
-        margin-right: auto !important;
+        /* Centering inside the column */
+        display: flex;
+        justify-content: center;
+        margin-left: auto;
+        margin-right: auto;
         width: fit-content;
         
-        /* Shadow for depth */
+        /* Shadow */
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     
@@ -153,11 +154,15 @@ try:
 except Exception:
     history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
 
-# --- UI HEADER ---
-try:
-    st.image("Pippafit_65.png", width=250) 
-except:
-    st.title("Pippafit 65") 
+# --- UI HEADER (CENTERED USING COLUMNS) ---
+# Create 3 columns: spacer | content | spacer
+c_left, c_center, c_right = st.columns([1, 2, 1])
+
+with c_center:
+    try:
+        st.image("Pippafit_65.png", width=250) 
+    except:
+        st.title("Pippafit 65") 
 
 # --- DAY SELECTION ---
 if 'selected_day' not in st.session_state:
