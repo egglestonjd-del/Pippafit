@@ -63,11 +63,18 @@ hide_st_style = """
     }
     
     .muscle-header {
-        color: #D81B60;
-        font-size: 0.9rem;
+        color: #888;
+        font-size: 0.75rem;
         text-transform: uppercase;
         font-weight: bold;
-        margin-bottom: -10px;
+        margin-bottom: 5px;
+    }
+
+    .exercise-title {
+        font-size: 1.4rem;
+        font-weight: 800;
+        margin-bottom: 15px;
+        line-height: 1.2;
     }
 
     .warmup-box {
@@ -152,20 +159,31 @@ else:
     
     for muscle in muscle_groups:
         with st.container(border=True):
-            st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
-            
             options = day_data[day_data['Target Group'] == muscle]
             ex_list = options['Exercise'].tolist()
             
+            # Persistent selection for swapping
             sb_key = f"sb_{muscle}_{st.session_state.selected_day}"
-            selected_ex = st.selectbox("Swap exercise", ex_list, key=sb_key)
+            if sb_key not in st.session_state:
+                st.session_state[sb_key] = ex_list[0]
             
+            # 1. DISPLAY TARGET GROUP (Small/Subtle)
+            st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
+            
+            # 2. DISPLAY CURRENT EXERCISE (Bold/Primary)
+            st.markdown(f'<div class="exercise-title">{st.session_state[sb_key]}</div>', unsafe_allow_html=True)
+            
+            # 3. SWAP SELECTOR (Secondary interaction)
+            selected_ex = st.selectbox("Swap exercise", ex_list, key=sb_key, label_visibility="visible")
+            
+            # Video tutorial for current selection
             raw_video = options[options['Exercise'] == selected_ex].iloc[0]['Video Link']
             if pd.notna(raw_video) and str(raw_video).strip():
                 clean_video = format_youtube_url(str(raw_video).strip())
                 with st.expander("▶️ Exercise tutorial"):
                     st.video(clean_video)
 
+            # History / Target
             ex_history = history_df[history_df['Exercise'] == selected_ex].copy()
             target_msg = "No history"
             if not ex_history.empty:
@@ -201,7 +219,7 @@ else:
                             })
                     if new_rows:
                         conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=pd.concat([history_df, pd.DataFrame(new_rows)], ignore_index=True))
-                        st.toast(f"{muscle} logged!", icon="✅")
+                        st.toast(f"{selected_ex} logged!", icon="✅")
                         st.rerun()
 
             with tab_edit:
