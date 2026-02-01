@@ -169,4 +169,4 @@ else:
                             st.toast(f"Deleted entry!", icon="🗑️")
                             st.rerun()
 
-        st.divider()
+        st.divider()# Force update
