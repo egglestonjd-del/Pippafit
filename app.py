@@ -18,17 +18,17 @@ hide_st_style = """
     [data-testid="stStatusWidget"] {visibility: hidden !important; display: none !important;}
     .block-container {padding-top: 2rem;}
     
-    /* 2. GENERAL INPUT STYLING (Contrast Fix) */
+    /* 2. GENERAL INPUT STYLING */
     .stNumberInput input {
         font-weight: bold;
-        background-color: transparent; /* Let system theme handle bg */
+        background-color: transparent;
     }
     
-    /* Add a visible border to ALL inputs to fix Light Mode visibility */
+    /* Add visible border for Light Mode visibility */
     div[data-testid="stNumberInput"] {
-        border: 1px solid #d0d0d0; /* Light Grey Border */
-        border-radius: 8px;        /* Rounded Corners */
-        box-shadow: 0px 1px 3px rgba(0,0,0,0.05); /* Subtle shadow */
+        border: 1px solid #d0d0d0;
+        border-radius: 8px;
+        box-shadow: 0px 1px 3px rgba(0,0,0,0.05);
         padding: 2px;
     }
     
@@ -55,7 +55,6 @@ hide_st_style = """
     }
 
     /* 4. EDIT MODE STYLING (The Yellow Border) */
-    /* Overrides the general border above specifically for Edit mode fields */
     input[aria-label="W"], input[aria-label="R"] {
         color: #b36b00 !important;              
     }
@@ -63,6 +62,11 @@ hide_st_style = """
     div[data-testid="stNumberInput"]:has(input[aria-label="R"]) {
         border: 2px solid #ffbd45 !important;   
         background-color: #fffbf0 !important;   
+    }
+    
+    /* 5. NAVIGATION BUTTONS (Make them full width) */
+    div[data-testid="column"] button {
+        width: 100%;
     }
     </style>
 """
@@ -107,23 +111,43 @@ except Exception:
 # --- UI HEADER ---
 st.title("Pippafit 65")
 
-# 1. Day Selection
-available_days = movements_db['Day'].unique()
-today_name = datetime.now().strftime("%A")
-default_ix = 0
-if today_name in available_days:
-    default_ix = list(available_days).index(today_name)
+# --- DAY SELECTION LOGIC (BUTTONS) ---
+# Initialize session state for day selection if not set
+if 'selected_day' not in st.session_state:
+    today_name = datetime.now().strftime("%A")
+    if today_name in ["Monday", "Wednesday", "Saturday"]:
+        st.session_state.selected_day = today_name
+    else:
+        st.session_state.selected_day = "Monday" # Default fallback
 
-selected_day = st.selectbox("Select Routine", available_days, index=default_ix)
+# Create 3 columns for the buttons
+col_mon, col_wed, col_sat = st.columns(3)
 
-# 2. Filter Logic
-day_data = movements_db[movements_db['Day'] == selected_day]
+# Logic to determine button style (Primary = Red/Active, Secondary = Grey/Inactive)
+style_mon = "primary" if st.session_state.selected_day == "Monday" else "secondary"
+style_wed = "primary" if st.session_state.selected_day == "Wednesday" else "secondary"
+style_sat = "primary" if st.session_state.selected_day == "Saturday" else "secondary"
+
+# The Buttons
+if col_mon.button("Monday", type=style_mon):
+    st.session_state.selected_day = "Monday"
+    st.rerun()
+
+if col_wed.button("Wednesday", type=style_wed):
+    st.session_state.selected_day = "Wednesday"
+    st.rerun()
+
+if col_sat.button("Saturday", type=style_sat):
+    st.session_state.selected_day = "Saturday"
+    st.rerun()
+
+# --- FILTER CONTENT BASED ON BUTTON SELECTION ---
+day_data = movements_db[movements_db['Day'] == st.session_state.selected_day]
 
 if day_data.empty:
-    st.info(f"No exercises found for {selected_day}.")
+    st.info(f"No exercises found for {st.session_state.selected_day}.")
 else:
-    st.write(f"**Routine for {selected_day}**")
-    
+    # Get unique Target Groups
     target_groups = list(dict.fromkeys(day_data['Target Group']))
     
     for group in target_groups:
@@ -136,7 +160,7 @@ else:
             "Select Movement", 
             exercise_list, 
             index=0, 
-            key=f"select_{group}_{selected_day}",
+            key=f"select_{group}_{st.session_state.selected_day}",
             label_visibility="collapsed"
         )
 
