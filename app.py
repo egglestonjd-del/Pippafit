@@ -23,8 +23,6 @@ hide_st_style = """
         font-weight: bold;
         background-color: transparent;
     }
-    
-    /* Add visible border for Light Mode visibility */
     div[data-testid="stNumberInput"] {
         border: 1px solid #d0d0d0;
         border-radius: 8px;
@@ -32,12 +30,11 @@ hide_st_style = """
         padding: 2px;
     }
     
-    /* 3. TABS STYLING (The 80/20 Split) */
+    /* 3. TABS STYLING */
     [data-baseweb="tab-list"] {
         width: 100%;
         display: flex;
     }
-    /* TAB 1: "Exercise" */
     button[data-baseweb="tab"]:nth-of-type(1) {
         width: 80% !important;
         justify-content: flex-start !important;
@@ -45,7 +42,6 @@ hide_st_style = """
         font-weight: 800 !important;
         padding-left: 10px !important;
     }
-    /* TAB 2: "Edit" */
     button[data-baseweb="tab"]:nth-of-type(2) {
         width: 20% !important;
         justify-content: flex-end !important;
@@ -54,7 +50,7 @@ hide_st_style = """
         color: #888; 
     }
 
-    /* 4. EDIT MODE STYLING (The Yellow Border) */
+    /* 4. EDIT MODE STYLING */
     input[aria-label="W"], input[aria-label="R"] {
         color: #b36b00 !important;              
     }
@@ -64,9 +60,14 @@ hide_st_style = """
         background-color: #fffbf0 !important;   
     }
     
-    /* 5. NAVIGATION BUTTONS (Make them full width) */
+    /* 5. NAVIGATION BUTTONS (Full Width & No Gaps) */
     div[data-testid="column"] button {
         width: 100%;
+        margin: 0px !important; /* Force zero margin */
+    }
+    /* Squeeze the columns themselves */
+    div[data-testid="column"] {
+        padding: 0px 2px !important; /* Tiny 2px gap just so they don't visually merge into a blob */
     }
     </style>
 """
@@ -112,42 +113,38 @@ except Exception:
 st.title("Pippafit 65")
 
 # --- DAY SELECTION LOGIC (BUTTONS) ---
-# Initialize session state for day selection if not set
 if 'selected_day' not in st.session_state:
     today_name = datetime.now().strftime("%A")
     if today_name in ["Monday", "Wednesday", "Saturday"]:
         st.session_state.selected_day = today_name
     else:
-        st.session_state.selected_day = "Monday" # Default fallback
+        st.session_state.selected_day = "Monday" 
 
-# Create 3 columns for the buttons
-col_mon, col_wed, col_sat = st.columns(3)
+# Create 3 columns with MINIMAL gap
+col_mon, col_wed, col_sat = st.columns(3, gap="small")
 
-# Logic to determine button style (Primary = Red/Active, Secondary = Grey/Inactive)
 style_mon = "primary" if st.session_state.selected_day == "Monday" else "secondary"
 style_wed = "primary" if st.session_state.selected_day == "Wednesday" else "secondary"
 style_sat = "primary" if st.session_state.selected_day == "Saturday" else "secondary"
 
-# The Buttons
-if col_mon.button("Monday", type=style_mon):
+if col_mon.button("Mon", type=style_mon): # Shortened to "Mon" to fit better
     st.session_state.selected_day = "Monday"
     st.rerun()
 
-if col_wed.button("Wednesday", type=style_wed):
+if col_wed.button("Wed", type=style_wed): # Shortened to "Wed"
     st.session_state.selected_day = "Wednesday"
     st.rerun()
 
-if col_sat.button("Saturday", type=style_sat):
+if col_sat.button("Sat", type=style_sat): # Shortened to "Sat"
     st.session_state.selected_day = "Saturday"
     st.rerun()
 
-# --- FILTER CONTENT BASED ON BUTTON SELECTION ---
+# --- FILTER CONTENT ---
 day_data = movements_db[movements_db['Day'] == st.session_state.selected_day]
 
 if day_data.empty:
     st.info(f"No exercises found for {st.session_state.selected_day}.")
 else:
-    # Get unique Target Groups
     target_groups = list(dict.fromkeys(day_data['Target Group']))
     
     for group in target_groups:
@@ -164,7 +161,6 @@ else:
             label_visibility="collapsed"
         )
 
-        # Video
         current_exercise_row = group_options[group_options['Exercise'] == selected_exercise]
         if not current_exercise_row.empty:
             video_url = current_exercise_row.iloc[0]['Video Link']
@@ -172,7 +168,6 @@ else:
                 with st.expander("▶️ Watch Tutorial"):
                     st.video(video_url)
 
-        # History / Target Calculation
         ex_history = history_df[history_df['Exercise'] == selected_exercise].copy()
         target_msg = "No history"
         
@@ -194,22 +189,18 @@ else:
             k_w2, k_r2 = f"{selected_exercise}_w2", f"{selected_exercise}_r2"
             k_w3, k_r3 = f"{selected_exercise}_w3", f"{selected_exercise}_r3"
 
-            # Set 1
             c1, c2 = st.columns([1, 1], gap="medium")
             c1.number_input("Set 1 | Enter weight", value=None, step=1.25, key=k_w1, on_change=update_weights, args=(selected_exercise,))
             c2.number_input("Set 1 | Reps", value=None, step=1, key=k_r1)
             
-            # Set 2
             c3, c4 = st.columns([1, 1], gap="medium")
             c3.number_input("Set 2 | Enter weight", value=None, step=1.25, key=k_w2)
             c4.number_input("Set 2 | Reps", value=None, step=1, key=k_r2)
             
-            # Set 3
             c5, c6 = st.columns([1, 1], gap="medium")
             c5.number_input("Set 3 | Enter weight", value=None, step=1.25, key=k_w3)
             c6.number_input("Set 3 | Reps", value=None, step=1, key=k_r3)
 
-            # LOG Button
             if st.button(f"LOG {selected_exercise.upper()}", type="primary", key=f"btn_{selected_exercise}"):
                 w1, r1 = st.session_state.get(k_w1), st.session_state.get(k_r1)
                 w2, r2 = st.session_state.get(k_w2), st.session_state.get(k_r2)
