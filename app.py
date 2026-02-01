@@ -7,6 +7,79 @@ from datetime import datetime
 st.set_page_config(page_title="Pippafit Tracker", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 
+# --- REMOVE STREAMLIT BRANDING (CTAs) ---
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
+# --- THEME MANAGEMENT ---
+if 'theme' not in st.session_state:
+    st.session_state.theme = 'system'
+
+# Apply CSS based on session state
+if st.session_state.theme == 'dark':
+    st.markdown("""
+        <style>
+            [data-testid="stAppViewContainer"] {
+                background-color: #0e1117;
+                color: #fafafa;
+            }
+            [data-testid="stHeader"] {
+                background-color: #0e1117;
+            }
+            [data-testid="stSidebar"] {
+                background-color: #262730;
+            }
+            .stSelectbox > div > div {
+                background-color: #262730;
+                color: #fafafa;
+            }
+            .stNumberInput input {
+                color: #fafafa;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
+elif st.session_state.theme == 'light':
+    st.markdown("""
+        <style>
+            [data-testid="stAppViewContainer"] {
+                background-color: #ffffff;
+                color: #31333F;
+            }
+            [data-testid="stHeader"] {
+                background-color: #ffffff;
+            }
+            [data-testid="stSidebar"] {
+                background-color: #f0f2f6;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
+# --- HEADER LAYOUT (TITLE + TOGGLE) ---
+col_title, col_toggle = st.columns([6, 1], gap="small")
+
+with col_title:
+    st.title("Pippafit Tracker")
+
+with col_toggle:
+    # Button Logic:
+    # If currently Dark -> Show Sun (to switch to Light)
+    # If currently Light or System -> Show Moon (to switch to Dark)
+    if st.session_state.theme == 'dark':
+        if st.button("☀️", key="theme_btn", help="Switch to Light Mode"):
+            st.session_state.theme = 'light'
+            st.rerun()
+    else:
+        if st.button("🌙", key="theme_btn", help="Switch to Dark Mode"):
+            st.session_state.theme = 'dark'
+            st.rerun()
+
 # --- LOAD MOVEMENT DATABASE ---
 try:
     movements_db = pd.read_csv("Pippafit_data.csv")
@@ -24,9 +97,6 @@ try:
         history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
 except Exception:
     history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
-
-# --- UI HEADER ---
-st.title("Pippafit Tracker")
 
 # 1. Day Selection
 available_days = movements_db['Day'].unique()
@@ -69,7 +139,6 @@ else:
         if not current_exercise_row.empty:
             video_url = current_exercise_row.iloc[0]['Video Link']
             if pd.notna(video_url) and str(video_url).startswith("http"):
-                # Using the Play Button Emoji
                 with st.expander("▶️ Watch Tutorial"):
                     st.video(video_url)
 
