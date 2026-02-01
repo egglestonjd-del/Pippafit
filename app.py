@@ -10,7 +10,7 @@ SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 # --- CUSTOM CSS: HIDE BRANDING & FORCE MOBILE COLUMNS ---
 hide_st_style = """
     <style>
-    /* 1. Hide Streamlit Branding (Header, Footer, Menu, Toolbar) */
+    /* 1. Hide Streamlit Branding */
     header {visibility: hidden;}
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -22,15 +22,30 @@ hide_st_style = """
         padding-top: 2rem;
     }
     
-    /* 3. FORCE COLUMNS SIDE-BY-SIDE ON MOBILE */
-    /* Streamlit usually stacks columns on mobile. This overrides that behavior. */
+    /* 3. FORCE COLUMNS SIDE-BY-SIDE ON MOBILE (AGGRESSIVE) */
+    [data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
+        white-space: nowrap !important;
+    }
     [data-testid="column"] {
         min-width: 0px !important;
+        width: auto !important;
         flex: 1 !important;
+        padding-left: 5px !important;
+        padding-right: 5px !important;
     }
     </style>
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
+
+# --- CELEBRATION LOGIC (Runs immediately on reload) ---
+if "celebrate" not in st.session_state:
+    st.session_state.celebrate = False
+
+if st.session_state.celebrate:
+    st.snow() # <--- CHANGED FROM BALLOONS TO SNOW
+    st.toast("Great Set! Logged successfully.", icon="❄️")
+    st.session_state.celebrate = False # Reset for next time
 
 # --- LOAD MOVEMENT DATABASE ---
 try:
@@ -119,7 +134,6 @@ else:
             st.caption(f"**{target_msg}**")
             
             # 3 Sets Inputs
-            # The CSS above ensures these columns stay side-by-side on mobile
             c1, c2 = st.columns([1, 1])
             w1 = c1.number_input("Set 1 Kg", value=last_weight, step=1.25, key=f"{selected_exercise}_w1")
             r1 = c2.number_input("Set 1 Reps", value=8, step=1, key=f"{selected_exercise}_r1")
@@ -145,7 +159,9 @@ else:
                     new_df = pd.DataFrame(new_logs)
                     updated_df = pd.concat([history_df, new_df], ignore_index=True)
                     conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=updated_df)
-                    st.success(f"Logged {selected_exercise}!")
+                    
+                    # Set the flag so snow appears on the next screen load
+                    st.session_state.celebrate = True
                     st.rerun()
 
         # --- MANAGE HISTORY ---
@@ -169,4 +185,4 @@ else:
                             st.toast(f"Deleted entry!", icon="🗑️")
                             st.rerun()
 
-        st.divider()# Force update
+        st.divider()
