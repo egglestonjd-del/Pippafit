@@ -57,10 +57,17 @@ hide_st_style = """
         .logo-dark { display: block; }
     }
     
+    /* Primary Day Button */
     div.stButton > button[kind="primary"] {
         background-color: #D81B60 !important;
         border-color: #D81B60 !important;
         color: white !important;
+    }
+
+    /* Restored Borders for Secondary Day Buttons */
+    div.stButton > button[kind="secondary"] {
+        border: 1px solid #d0d0d0 !important;
+        background-color: transparent !important;
     }
 
     .stNumberInput input { font-weight: bold; }
@@ -101,7 +108,6 @@ hide_st_style = """
         .warmup-box { background-color: #2d1a22; color: #fff; }
     }
 
-    /* Soft Grey Rest Text */
     .rest-text {
         color: #b0b0b0;
         font-size: 0.75rem;
@@ -109,15 +115,15 @@ hide_st_style = """
         margin: 2px 0 10px 0;
     }
     
-    /* Inline Swap Trigger */
-    .stButton > button[kind="secondary"] {
+    .swap-trigger-container .stButton > button {
         height: auto;
         padding: 0;
-        border: none;
-        background: none;
-        color: #D81B60;
-        text-decoration: underline;
-        font-size: 0.8rem;
+        border: none !important;
+        background: none !important;
+        color: #D81B60 !important;
+        text-decoration: underline !important;
+        font-size: 0.8rem !important;
+        box-shadow: none !important;
     }
     </style>
 """
@@ -186,7 +192,6 @@ else:
             
             st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
             
-            # Inline Exercise Title + Swap Link
             title_col, swap_col = st.columns([0.7, 0.3])
             title_col.markdown(f'<div class="exercise-title">{st.session_state[anchor_key]}</div>', unsafe_allow_html=True)
             
@@ -194,28 +199,30 @@ else:
             if swap_state_key not in st.session_state:
                 st.session_state[swap_state_key] = False
             
-            if not st.session_state[swap_state_key]:
-                if swap_col.button("Swap", key=f"btn_swap_{muscle}"):
-                    st.session_state[swap_state_key] = True
-                    st.rerun()
-            else:
-                selected_ex = st.selectbox(
-                    "Swap to:", 
-                    ex_list, 
-                    index=ex_list.index(st.session_state[anchor_key]),
-                    key=f"sb_{muscle}_{st.session_state.selected_day}"
-                )
-                if selected_ex != st.session_state[anchor_key]:
-                    st.session_state[anchor_key] = selected_ex
-                    st.session_state[swap_state_key] = False
-                    st.rerun()
-                if st.button("Cancel", key=f"cancel_{muscle}"):
-                    st.session_state[swap_state_key] = False
-                    st.rerun()
+            with swap_col:
+                st.markdown('<div class="swap-trigger-container">', unsafe_allow_html=True)
+                if not st.session_state[swap_state_key]:
+                    if st.button("Swap", key=f"btn_swap_{muscle}"):
+                        st.session_state[swap_state_key] = True
+                        st.rerun()
+                else:
+                    selected_ex = st.selectbox(
+                        "Swap to:", 
+                        ex_list, 
+                        index=ex_list.index(st.session_state[anchor_key]),
+                        key=f"sb_{muscle}_{st.session_state.selected_day}"
+                    )
+                    if selected_ex != st.session_state[anchor_key]:
+                        st.session_state[anchor_key] = selected_ex
+                        st.session_state[swap_state_key] = False
+                        st.rerun()
+                    if st.button("Cancel", key=f"cancel_{muscle}"):
+                        st.session_state[swap_state_key] = False
+                        st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
 
             current_exercise = st.session_state[anchor_key]
             
-            # Watch demo
             video = options[options['Exercise'] == current_exercise].iloc[0]['Video Link']
             if pd.notna(video) and str(video).strip():
                 with st.expander("▶️ Watch demo"):
