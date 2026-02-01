@@ -8,7 +8,6 @@ st.set_page_config(page_title="Pippafit Tracker", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 
 # --- CUSTOM CSS: HIDE BRANDING ONLY ---
-# Removed the mobile column overrides.
 hide_st_style = """
     <style>
     /* 1. Hide Streamlit Branding */
@@ -31,8 +30,8 @@ if "celebrate" not in st.session_state:
     st.session_state.celebrate = False
 
 if st.session_state.celebrate:
-    st.snow()
-    st.toast("Great Set! Logged successfully.", icon="❄️")
+    st.balloons() # <--- BACK TO BALLOONS
+    st.toast("Great Set! Logged successfully.", icon="🎉")
     st.session_state.celebrate = False 
 
 # --- LOAD MOVEMENT DATABASE ---
