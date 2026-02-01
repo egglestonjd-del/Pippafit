@@ -13,7 +13,6 @@ SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 def format_youtube_url(url):
     if not isinstance(url, str):
         return url
-    # Converts youtube.com/shorts/XXXX to youtube.com/watch?v=XXXX
     if "/shorts/" in url:
         return url.replace("/shorts/", "/watch?v=")
     return url
@@ -70,6 +69,22 @@ hide_st_style = """
         font-weight: bold;
         margin-bottom: -10px;
     }
+
+    /* Warm up box styling */
+    .warmup-box {
+        background-color: #fff0f5;
+        border-left: 5px solid #D81B60;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 25px;
+        color: #000;
+    }
+    @media (prefers-color-scheme: dark) {
+        .warmup-box {
+            background-color: #2d1a22;
+            color: #fff;
+        }
+    }
     </style>
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -116,6 +131,9 @@ if col_sat.button("Saturday", type= "primary" if st.session_state.selected_day =
     st.session_state.selected_day = "Saturday"
     st.rerun()
 
+# --- WARM UP INSTRUCTION ---
+st.markdown('<div class="warmup-box">🏃 <b>Warm up:</b> 10 minutes on the treadmill. Visualise the gift you give yourself when you turn 65. Imagine the outcomes of the effort you put in NOW when you blow out the candles on your 65th birthday cake surrounded by your family that loves you - that's gonna be pretty sweet.</div>', unsafe_allow_html=True)
+
 # --- THE MUSCLE GROUP SPREAD ---
 day_data = movements_db[movements_db['Day'] == st.session_state.selected_day]
 
@@ -134,14 +152,12 @@ else:
             sb_key = f"sb_{muscle}_{st.session_state.selected_day}"
             selected_ex = st.selectbox("Swap exercise", ex_list, key=sb_key)
             
-            # --- VIDEO HANDLER ---
             raw_video = options[options['Exercise'] == selected_ex].iloc[0]['Video Link']
             if pd.notna(raw_video) and str(raw_video).strip():
                 clean_video = format_youtube_url(str(raw_video).strip())
                 with st.expander("▶️ Exercise tutorial"):
                     st.video(clean_video)
 
-            # History / Target
             ex_history = history_df[history_df['Exercise'] == selected_ex].copy()
             target_msg = "No history"
             if not ex_history.empty:
