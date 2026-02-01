@@ -4,10 +4,43 @@ import pandas as pd
 from datetime import datetime
 import base64
 import time
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # --- CONFIG ---
 st.set_page_config(page_title="Pippafit 65", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
+
+# --- EMAIL FUNCTION ---
+def send_workout_email(summary_html):
+    try:
+        # Load secrets
+        smtp_server = st.secrets["email"]["smtp_server"]
+        smtp_port = st.secrets["email"]["smtp_port"]
+        sender_email = st.secrets["email"]["sender_email"]
+        sender_password = st.secrets["email"]["sender_password"]
+        receiver_email = st.secrets["email"]["receiver_email"]
+
+        # Create Message
+        msg = MIMEMultipart()
+        msg['From'] = "Pippafit App <" + sender_email + ">"
+        msg['To'] = receiver_email
+        msg['Subject'] = f"💪 Workout Complete: {datetime.now().strftime('%A, %d %b')}"
+
+        # Attach HTML body
+        msg.attach(MIMEText(summary_html, 'html'))
+
+        # Send
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        st.error(f"Email Error: {e}")
+        return False
 
 # --- CACHED DATA LOADING ---
 @st.cache_data(ttl=600)
@@ -310,5 +343,39 @@ else:
 
     st.divider()
     if st.button("Complete workout", type="primary", use_container_width=True):
-        st.balloons()
-        st.success("Workout logged!")
+        # 1. Fetch Fresh Data (bypass cache to get the very latest logs)
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        fresh_history = conn.read(spreadsheet=SHEET_URL, worksheet="Logs", usecols=[0, 1, 2, 3])
+        
+        # 2. Filter for Today
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        today_logs = fresh_history[fresh_history['Date'].str.contains(today_str, na=False)]
+        
+        if not today_logs.empty:
+            # 3. Create HTML Table for Email
+            html_table = """
+            <table style="border-collapse: collapse; width: 100%; border: 1px solid #ddd; font-family: Arial, sans-serif;">
+                <tr style="background-color: #D81B60; color: white;">
+                    <th style="padding: 10px; border: 1px solid #ddd;">Exercise</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Weight (kg)</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Reps</th>
+                </tr>
+            """
+            for _, row in today_logs.iterrows():
+                html_table += f"""
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{row['Exercise']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{row['Weight']}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{row['Reps']}</td>
+                </tr>
+                """
+            html_table += "</table>"
+            
+            with st.spinner("Sending summary email..."):
+                if send_workout_email(html_table):
+                    st.balloons()
+                    st.success("Great job! Workout summary sent.")
+                else:
+                    st.warning("Workout saved, but email failed. Check secrets config.")
+        else:
+            st.info("No logs found for today yet.")
