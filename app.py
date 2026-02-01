@@ -59,16 +59,6 @@ hide_st_style = """
         border: 2px solid #ffbd45 !important;   
         background-color: #fffbf0 !important;   
     }
-    
-    /* 5. NAVIGATION BUTTONS (Full Width & No Gaps) */
-    div[data-testid="column"] button {
-        width: 100%;
-        margin: 0px !important; /* Force zero margin */
-    }
-    /* Squeeze the columns themselves */
-    div[data-testid="column"] {
-        padding: 0px 2px !important; /* Tiny 2px gap just so they don't visually merge into a blob */
-    }
     </style>
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -120,22 +110,23 @@ if 'selected_day' not in st.session_state:
     else:
         st.session_state.selected_day = "Monday" 
 
-# Create 3 columns with MINIMAL gap
-col_mon, col_wed, col_sat = st.columns(3, gap="small")
+# Create 3 columns. Streamlit handles stacking automatically on mobile.
+col_mon, col_wed, col_sat = st.columns(3)
 
 style_mon = "primary" if st.session_state.selected_day == "Monday" else "secondary"
 style_wed = "primary" if st.session_state.selected_day == "Wednesday" else "secondary"
 style_sat = "primary" if st.session_state.selected_day == "Saturday" else "secondary"
 
-if col_mon.button("Mon", type=style_mon): # Shortened to "Mon" to fit better
+# use_container_width=True forces the button to expand to the full width of its column
+if col_mon.button("Monday", type=style_mon, use_container_width=True):
     st.session_state.selected_day = "Monday"
     st.rerun()
 
-if col_wed.button("Wed", type=style_wed): # Shortened to "Wed"
+if col_wed.button("Wednesday", type=style_wed, use_container_width=True):
     st.session_state.selected_day = "Wednesday"
     st.rerun()
 
-if col_sat.button("Sat", type=style_sat): # Shortened to "Sat"
+if col_sat.button("Saturday", type=style_sat, use_container_width=True):
     st.session_state.selected_day = "Saturday"
     st.rerun()
 
@@ -201,7 +192,8 @@ else:
             c5.number_input("Set 3 | Enter weight", value=None, step=1.25, key=k_w3)
             c6.number_input("Set 3 | Reps", value=None, step=1, key=k_r3)
 
-            if st.button(f"LOG {selected_exercise.upper()}", type="primary", key=f"btn_{selected_exercise}"):
+            # LOG Button (Also made dynamic width for consistency)
+            if st.button(f"LOG {selected_exercise.upper()}", type="primary", key=f"btn_{selected_exercise}", use_container_width=True):
                 w1, r1 = st.session_state.get(k_w1), st.session_state.get(k_r1)
                 w2, r2 = st.session_state.get(k_w2), st.session_state.get(k_r2)
                 w3, r3 = st.session_state.get(k_w3), st.session_state.get(k_r3)
