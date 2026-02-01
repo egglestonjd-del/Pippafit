@@ -10,14 +10,11 @@ st.set_page_config(page_title="Pippafit 65", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 
 # --- CACHED DATA LOADING ---
-# This prevents the 429 "Quota Exceeded" error by keeping data in memory for 10 minutes
 @st.cache_data(ttl=600)
 def get_movements_data():
     conn = st.connection("gsheets", type=GSheetsConnection)
     return conn.read(spreadsheet=SHEET_URL, worksheet="Exercise_bank")
 
-# We use a shorter TTL (10 seconds) for logs so you see your updates almost immediately 
-# without spamming the API on every keystroke
 @st.cache_data(ttl=10)
 def get_logs_data():
     conn = st.connection("gsheets", type=GSheetsConnection)
@@ -26,21 +23,17 @@ def get_logs_data():
         return pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
     return df
 
-# --- HELPER: CONVERT SHORTS TO STANDARD URL ---
+# --- HELPERS ---
 def format_youtube_url(url):
-    if not isinstance(url, str):
-        return url
-    if "/shorts/" in url:
-        return url.replace("/shorts/", "/watch?v=")
+    if not isinstance(url, str): return url
+    if "/shorts/" in url: return url.replace("/shorts/", "/watch?v=")
     return url
 
-# --- HELPER: IMAGE TO BASE64 ---
 def get_base64_image(image_path):
     try:
         with open(image_path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
-    except FileNotFoundError:
-        return None
+    except FileNotFoundError: return None
 
 # --- CUSTOM CSS ---
 hide_st_style = """
@@ -70,15 +63,20 @@ hide_st_style = """
         color: white !important;
     }
 
-    .stNumberInput input {
-        font-weight: bold;
-    }
-    div[data-testid="stNumberInput"] {
-        border: 1px solid #d0d0d0;
-        border-radius: 8px;
-        padding: 2px;
-    }
+    .stNumberInput input { font-weight: bold; }
     
+    /* 80/20 Tab Width Adjustment */
+    [data-baseweb="tab-list"] {
+        width: 100%;
+        display: flex;
+    }
+    button[data-baseweb="tab"]:nth-of-type(1) {
+        width: 80% !important;
+    }
+    button[data-baseweb="tab"]:nth-of-type(2) {
+        width: 20% !important;
+    }
+
     .muscle-header {
         color: #888;
         font-size: 0.75rem;
@@ -94,9 +92,7 @@ hide_st_style = """
         line-height: 1.2;
     }
 
-    div[data-testid="stSelectbox"] > label {
-        display: none;
-    }
+    div[data-testid="stSelectbox"] > label { display: none; }
     
     .inline-label-container {
         display: flex;
@@ -110,9 +106,7 @@ hide_st_style = """
         color: #D81B60;
         white-space: nowrap;
     }
-    .inline-label-container > div {
-        flex-grow: 1;
-    }
+    .inline-label-container > div { flex-grow: 1; }
 
     .warmup-box {
         background-color: #fff0f5;
@@ -124,10 +118,7 @@ hide_st_style = """
         line-height: 1.4;
     }
     @media (prefers-color-scheme: dark) {
-        .warmup-box {
-            background-color: #2d1a22;
-            color: #fff;
-        }
+        .warmup-box { background-color: #2d1a22; color: #fff; }
     }
     </style>
 """
@@ -147,8 +138,8 @@ def update_weights(ex_key):
 try:
     movements_db = get_movements_data()
     history_df = get_logs_data()
-except Exception as e:
-    st.error(f"Quota issue or Sheet Error. Waiting to retry...")
+except Exception:
+    st.error("Connection Error. Retrying...")
     st.stop()
 
 # --- UI HEADER ---
@@ -158,47 +149,40 @@ if img_light and img_dark:
     st.markdown(f'<div class="logo-container"><img src="data:image/png;base64,{img_light}" class="logo-light"><img src="data:image/png;base64,{img_dark}" class="logo-dark"></div>', unsafe_allow_html=True)
 
 # --- DAY SELECTION ---
+days = ["Monday", "Tuesday", "Thursday", "Saturday"]
 if 'selected_day' not in st.session_state:
-    st.session_state.selected_day = datetime.now().strftime("%A") if datetime.now().strftime("%A") in ["Monday", "Wednesday", "Saturday"] else "Monday"
+    curr_day = datetime.now().strftime("%A")
+    st.session_state.selected_day = curr_day if curr_day in days else "Monday"
 
-col_mon, col_wed, col_sat = st.columns(3)
-if col_mon.button("Monday", type="primary" if st.session_state.selected_day == "Monday" else "secondary", use_container_width=True):
-    st.session_state.selected_day = "Monday"
-    st.rerun()
-if col_wed.button("Wednesday", type="primary" if st.session_state.selected_day == "Wednesday" else "secondary", use_container_width=True):
-    st.session_state.selected_day = "Wednesday"
-    st.rerun()
-if col_sat.button("Saturday", type= "primary" if st.session_state.selected_day == "Saturday" else "secondary", use_container_width=True):
-    st.session_state.selected_day = "Saturday"
-    st.rerun()
+cols = st.columns(4)
+for i, day in enumerate(days):
+    if cols[i].button(day, type="primary" if st.session_state.selected_day == day else "secondary", use_container_width=True):
+        st.session_state.selected_day = day
+        st.rerun()
 
-# --- WARM UP INSTRUCTION ---
+# --- WARM UP ---
 st.markdown("""
 <div class="warmup-box">
     <h3 style="margin-top:0; color:#D81B60;">🔥 Warm up</h3>
     🏃 <b>10 MINS</b> | Treadmill<br><br>
-    <b>VISUALISE</b> the gift you give yourself at <b>65</b>.<br><br>
-    Imagine the <b>OUTCOMES</b> of the effort you put in <b>NOW</b> when you blow out those candles, surrounded by <b>family who loves you.</b><br><br>
-    That’s going to be <b>pretty sweet.</b>
+    Visualise the gift you give yourself at <b>65</b>.<br>
+    Focus the outcomes of the effort you put in <b>NOW</b>.
 </div>
 """, unsafe_allow_html=True)
 
-# --- THE MUSCLE GROUP SPREAD ---
+# --- WORKOUT SPREAD ---
 day_data = movements_db[movements_db['Day'] == st.session_state.selected_day]
 
 if day_data.empty:
     st.info(f"No workout scheduled for {st.session_state.selected_day}.")
 else:
-    muscle_groups = day_data['Target Group'].unique()
-    
-    for muscle in muscle_groups:
+    for muscle in day_data['Target Group'].unique():
         with st.container(border=True):
             options = day_data[day_data['Target Group'] == muscle]
             ex_list = options['Exercise'].tolist()
             
             sb_key = f"sb_{muscle}_{st.session_state.selected_day}"
-            if sb_key not in st.session_state:
-                st.session_state[sb_key] = ex_list[0]
+            if sb_key not in st.session_state: st.session_state[sb_key] = ex_list[0]
             
             st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
             st.markdown(f'<div class="exercise-title">{st.session_state[sb_key]}</div>', unsafe_allow_html=True)
@@ -207,19 +191,17 @@ else:
             selected_ex = st.selectbox("Swap exercise (optional)", ex_list, key=sb_key, label_visibility="collapsed")
             st.markdown('</div>', unsafe_allow_html=True)
             
-            raw_video = options[options['Exercise'] == selected_ex].iloc[0]['Video Link']
-            if pd.notna(raw_video) and str(raw_video).strip():
-                clean_video = format_youtube_url(str(raw_video).strip())
+            video = options[options['Exercise'] == selected_ex].iloc[0]['Video Link']
+            if pd.notna(video) and str(video).strip():
                 with st.expander("▶️ Exercise tutorial"):
-                    st.video(clean_video)
+                    st.video(format_youtube_url(str(video).strip()))
 
-            # Target / History logic
             ex_history = history_df[history_df['Exercise'] == selected_ex].copy()
             target_msg = "No history"
             if not ex_history.empty:
                 ex_history['Date'] = pd.to_datetime(ex_history['Date'], errors='coerce')
-                last_session_date = ex_history.sort_values(by='Date').iloc[-1]['Date'].date()
-                last_session = ex_history[ex_history['Date'].dt.date == last_session_date]
+                last_date = ex_history.sort_values(by='Date').iloc[-1]['Date'].date()
+                last_session = ex_history[ex_history['Date'].dt.date == last_date]
                 if not last_session.empty:
                     best = last_session.sort_values(by=['Weight', 'Reps']).iloc[-1]
                     target_msg = f"Target: {float(best['Weight'])}kg x {int(best['Reps'])}"
@@ -228,30 +210,32 @@ else:
 
             with tab_log:
                 st.caption(f"**{target_msg}**")
-                k1, k2, k3 = f"{selected_ex}_w1", f"{selected_ex}_w2", f"{selected_ex}_w3"
-                r1, r2, r3 = f"{selected_ex}_r1", f"{selected_ex}_r2", f"{selected_ex}_r3"
-
-                for i, (kw, kr) in enumerate([(k1, r1), (k2, r2), (k3, r3)], 1):
-                    c_w, c_r = st.columns(2)
-                    c_w.number_input(f"Set {i} Kg", value=None, step=1.25, key=kw, on_change=update_weights if i==1 else None, args=(selected_ex,) if i==1 else None)
-                    c_r.number_input(f"Set {i} Reps", value=None, step=1, key=kr)
+                for i in range(1, 4):
+                    # Bordered container for each set
+                    with st.container(border=True):
+                        st.markdown(f"###### Set {i}")
+                        kw, kr = f"{selected_ex}_w{i}", f"{selected_ex}_r{i}"
+                        c_w, c_r = st.columns(2)
+                        # Removed "Set X" prefixes from input labels
+                        c_w.number_input("Kg", value=None, step=1.25, key=kw, on_change=update_weights if i==1 else None, args=(selected_ex,) if i==1 else None)
+                        c_r.number_input("Reps", value=None, step=1, key=kr)
 
                 if st.button("SAVE SETS", type="primary", key=f"save_{selected_ex}_{muscle}", use_container_width=True):
                     new_rows = []
-                    for kw, kr in [(k1, r1), (k2, r2), (k3, r3)]:
-                        val_r = st.session_state.get(kr)
-                        if val_r:
+                    for i in range(1, 4):
+                        r = st.session_state.get(f"{selected_ex}_r{i}")
+                        if r:
                             new_rows.append({
                                 "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
                                 "Exercise": selected_ex, 
-                                "Weight": st.session_state.get(kw) or 0, 
-                                "Reps": val_r
+                                "Weight": st.session_state.get(f"{selected_ex}_w{i}") or 0, 
+                                "Reps": r
                             })
                     if new_rows:
                         with st.spinner("Syncing..."):
                             conn = st.connection("gsheets", type=GSheetsConnection)
                             conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=pd.concat([history_df, pd.DataFrame(new_rows)], ignore_index=True))
-                            st.cache_data.clear() # Clear cache so the next load sees the new data
+                            st.cache_data.clear()
                         st.toast(f"{selected_ex} logged!", icon="✅")
                         st.rerun()
 
