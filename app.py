@@ -59,6 +59,12 @@ hide_st_style = """
         border: 2px solid #ffbd45 !important;   
         background-color: #fffbf0 !important;   
     }
+    
+    /* 5. TIGHTEN SUB-BOX HEADERS */
+    /* Reduces the gap between "Set 1" text and the inputs below it */
+    div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
+        gap: 0.5rem;
+    }
     </style>
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -138,7 +144,7 @@ else:
     
     for group in target_groups:
         
-        # --- START CARD CONTAINER ---
+        # --- START EXERCISE CARD ---
         with st.container(border=True):
             
             group_options = day_data[day_data['Target Group'] == group]
@@ -182,29 +188,29 @@ else:
                 k_w2, k_r2 = f"{selected_exercise}_w2", f"{selected_exercise}_r2"
                 k_w3, k_r3 = f"{selected_exercise}_w3", f"{selected_exercise}_r3"
 
-                # SET 1
-                c1, c2 = st.columns([1, 1], gap="small") # Tight gap for grouping
-                c1.number_input("Set 1 | Enter weight", value=None, step=1.25, key=k_w1, on_change=update_weights, args=(selected_exercise,))
-                c2.number_input("Set 1 | Reps", value=None, step=1, key=k_r1)
-                
-                # SPACER
-                st.markdown("<div style='height: 15px'></div>", unsafe_allow_html=True)
+                # --- SET 1 BOX ---
+                with st.container(border=True):
+                    st.markdown("**Set 1**")
+                    c1, c2 = st.columns([1, 1], gap="small")
+                    c1.number_input("Kg", value=None, step=1.25, key=k_w1, on_change=update_weights, args=(selected_exercise,))
+                    c2.number_input("Reps", value=None, step=1, key=k_r1)
 
-                # SET 2
-                c3, c4 = st.columns([1, 1], gap="small") # Tight gap
-                c3.number_input("Set 2 | Enter weight", value=None, step=1.25, key=k_w2)
-                c4.number_input("Set 2 | Reps", value=None, step=1, key=k_r2)
-                
-                # SPACER
-                st.markdown("<div style='height: 15px'></div>", unsafe_allow_html=True)
+                # --- SET 2 BOX ---
+                with st.container(border=True):
+                    st.markdown("**Set 2**")
+                    c3, c4 = st.columns([1, 1], gap="small")
+                    c3.number_input("Kg", value=None, step=1.25, key=k_w2)
+                    c4.number_input("Reps", value=None, step=1, key=k_r2)
 
-                # SET 3
-                c5, c6 = st.columns([1, 1], gap="small") # Tight gap
-                c5.number_input("Set 3 | Enter weight", value=None, step=1.25, key=k_w3)
-                c6.number_input("Set 3 | Reps", value=None, step=1, key=k_r3)
+                # --- SET 3 BOX ---
+                with st.container(border=True):
+                    st.markdown("**Set 3**")
+                    c5, c6 = st.columns([1, 1], gap="small")
+                    c5.number_input("Kg", value=None, step=1.25, key=k_w3)
+                    c6.number_input("Reps", value=None, step=1, key=k_r3)
 
                 # SPACER BEFORE BUTTON
-                st.markdown("<div style='height: 15px'></div>", unsafe_allow_html=True)
+                st.markdown("<div style='height: 10px'></div>", unsafe_allow_html=True)
 
                 # LOG Button
                 if st.button(f"LOG {selected_exercise.upper()}", type="primary", key=f"btn_{selected_exercise}", use_container_width=True):
