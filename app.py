@@ -2,9 +2,6 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import base64
 
 # --- CONFIG ---
@@ -104,44 +101,6 @@ hide_st_style = """
     </style>
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
-
-# --- EMAIL FUNCTION ---
-def send_workout_email(dataframe):
-    try:
-        today_date = datetime.now().date()
-        dataframe['Date'] = pd.to_datetime(dataframe['Date'], errors='coerce')
-        todays_logs = dataframe[dataframe['Date'].dt.date == today_date]
-
-        if todays_logs.empty:
-            return "No logs found for today."
-
-        lines = [f"Workout Summary for {today_date.strftime('%A, %d %B %Y')}\n"]
-        exercises = todays_logs['Exercise'].unique()
-        for ex in exercises:
-            lines.append(f"\n{ex}:")
-            ex_data = todays_logs[todays_logs['Exercise'] == ex]
-            for _, row in ex_data.iterrows():
-                lines.append(f" - {row['Weight']}kg x {row['Reps']} reps")
-        
-        body = "\n".join(lines)
-        sender = st.secrets["email"]["sender"]
-        password = st.secrets["email"]["password"]
-        receiver = st.secrets["email"]["receiver"]
-        
-        msg = MIMEMultipart()
-        msg['From'] = sender
-        msg['To'] = receiver
-        msg['Subject'] = f"Pippafit Log: {today_date}"
-        msg.attach(MIMEText(body, 'plain'))
-        
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(sender, password)
-        server.sendmail(sender, receiver, msg.as_string())
-        server.quit()
-        return "Email sent!"
-    except Exception as e:
-        return f"Email failed: {e}"
 
 # --- AUTO-FILL CALLBACK ---
 def update_weights(ex_key):
@@ -318,8 +277,4 @@ else:
     st.divider()
     if st.button("Complete workout", type="primary", use_container_width=True):
         st.balloons()
-        status = send_workout_email(history_df)
-        if "Email sent" in status:
-            st.success(f"Great job! Summary emailed to {st.secrets['email']['receiver']}")
-        else:
-            st.warning(status)
+        st.success("Workout logged successfully!")
