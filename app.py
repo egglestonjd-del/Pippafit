@@ -5,10 +5,20 @@ from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import base64
 
 # --- CONFIG ---
 st.set_page_config(page_title="Pippafit 65", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
+
+# --- HELPER: IMAGE TO BASE64 ---
+# This ensures images display correctly in HTML without path issues
+def get_base64_image(image_path):
+    try:
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    except FileNotFoundError:
+        return None
 
 # --- CUSTOM CSS ---
 hide_st_style = """
@@ -21,22 +31,15 @@ hide_st_style = """
     [data-testid="stStatusWidget"] {visibility: hidden !important; display: none !important;}
     .block-container {padding-top: 2rem;}
     
-    /* 2. LOGO STYLING - STICKER LOOK */
-    div[data-testid="stImage"] {
-        background-color: white;
-        border-radius: 12px;
-        padding: 10px;
-        margin-bottom: 20px;
-        
-        /* Centering inside the column */
-        display: flex;
-        justify-content: center;
-        margin-left: auto;
-        margin-right: auto;
-        width: fit-content;
-        
-        /* Shadow */
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    /* 2. THEME-AWARE LOGO SWITCHER */
+    /* By default, show Light logo, hide Dark logo */
+    .logo-light { display: block; margin: auto; width: 250px; }
+    .logo-dark { display: none; margin: auto; width: 250px; }
+    
+    /* If user prefers Dark Mode, swap them */
+    @media (prefers-color-scheme: dark) {
+        .logo-light { display: none; }
+        .logo-dark { display: block; }
     }
     
     /* 3. GENERAL INPUT STYLING */
@@ -154,15 +157,25 @@ try:
 except Exception:
     history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
 
-# --- UI HEADER (CENTERED USING COLUMNS) ---
-# Create 3 columns: spacer | content | spacer
-c_left, c_center, c_right = st.columns([1, 2, 1])
+# --- UI HEADER (THEME AWARE) ---
+# We load both images as base64 strings
+img_light = get_base64_image("Pippafit_Light.png")
+img_dark = get_base64_image("Pippafit_Dark.png")
 
-with c_center:
-    try:
-        st.image("Pippafit_65.png", width=250) 
-    except:
-        st.title("Pippafit 65") 
+# If images exist, render the HTML that swaps them
+if img_light and img_dark:
+    st.markdown(
+        f"""
+        <div>
+            <img src="data:image/png;base64,{img_light}" class="logo-light">
+            <img src="data:image/png;base64,{img_dark}" class="logo-dark">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+else:
+    # Fallback if files are missing
+    st.title("Pippafit 65") 
 
 # --- DAY SELECTION ---
 if 'selected_day' not in st.session_state:
