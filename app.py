@@ -175,7 +175,7 @@ st.markdown("""
     <h3 style="margin-top:0; color:#D81B60;">🔥 Warm up</h3>
     🏃 <b>10 MINS</b> | Treadmill<br><br>
     Visualise the gift you give yourself at <b>65</b>.<br>
-    Focus the outcomes of the effort you put in <b>NOW</b>.
+    Focus on the outcomes of the effort you put in now.
 </div>
 """, unsafe_allow_html=True)
 
