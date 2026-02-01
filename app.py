@@ -17,45 +17,6 @@ hide_st_style = """
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
-# --- THEME LOGIC (SETTINGS EXPANDER) ---
-# We use an expander so it doesn't clutter the main view
-with st.expander("⚙️ Settings"):
-    theme_choice = st.radio("App Theme", ["System Default", "Light Mode", "Dark Mode"], horizontal=True)
-
-    if theme_choice == "Dark Mode":
-        st.markdown("""
-            <style>
-                :root {
-                    --primary-color: #ff4b4b;
-                    --background-color: #0e1117;
-                    --secondary-background-color: #262730;
-                    --text-color: #fafafa;
-                    --font: sans-serif;
-                }
-                /* Force input backgrounds for dark mode */
-                .stSelectbox > div > div {
-                    background-color: #262730;
-                    color: #fafafa;
-                }
-                .stNumberInput input {
-                    color: #fafafa;
-                }
-            </style>
-            """, unsafe_allow_html=True)
-            
-    elif theme_choice == "Light Mode":
-        st.markdown("""
-            <style>
-                :root {
-                    --primary-color: #ff4b4b;
-                    --background-color: #ffffff;
-                    --secondary-background-color: #f0f2f6;
-                    --text-color: #31333F;
-                    --font: sans-serif;
-                }
-            </style>
-            """, unsafe_allow_html=True)
-
 # --- LOAD MOVEMENT DATABASE ---
 try:
     movements_db = pd.read_csv("Pippafit_data.csv")
