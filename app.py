@@ -7,14 +7,31 @@ from datetime import datetime
 st.set_page_config(page_title="Pippafit Tracker", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 
-# --- REMOVE STREAMLIT BRANDING (CTAs) ---
+# --- REMOVE ALL STREAMLIT BRANDING & OVERLAYS ---
+# This CSS targets the header, footer, main menu, and the specific "Manage App" toolbar
 hide_st_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            </style>
-            """
+    <style>
+    /* Hide the top header line */
+    header {visibility: hidden;}
+    
+    /* Hide the main menu (hamburger icon) */
+    #MainMenu {visibility: hidden;}
+    
+    /* Hide the footer (Made with Streamlit) */
+    footer {visibility: hidden;}
+    
+    /* Hide the "Manage App" / "Viewer Badge" in bottom right */
+    [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
+    
+    /* Hide the colored running man / status animation top right */
+    [data-testid="stStatusWidget"] {visibility: hidden !important; display: none !important;}
+    
+    /* Remove top padding since header is gone */
+    .block-container {
+        padding-top: 2rem;
+    }
+    </style>
+"""
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # --- LOAD MOVEMENT DATABASE ---
