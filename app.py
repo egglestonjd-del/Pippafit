@@ -17,68 +17,44 @@ hide_st_style = """
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
-# --- THEME MANAGEMENT ---
-if 'theme' not in st.session_state:
-    st.session_state.theme = 'system'
+# --- THEME LOGIC (SETTINGS EXPANDER) ---
+# We use an expander so it doesn't clutter the main view
+with st.expander("⚙️ Settings"):
+    theme_choice = st.radio("App Theme", ["System Default", "Light Mode", "Dark Mode"], horizontal=True)
 
-# Apply CSS based on session state
-if st.session_state.theme == 'dark':
-    st.markdown("""
-        <style>
-            [data-testid="stAppViewContainer"] {
-                background-color: #0e1117;
-                color: #fafafa;
-            }
-            [data-testid="stHeader"] {
-                background-color: #0e1117;
-            }
-            [data-testid="stSidebar"] {
-                background-color: #262730;
-            }
-            .stSelectbox > div > div {
-                background-color: #262730;
-                color: #fafafa;
-            }
-            .stNumberInput input {
-                color: #fafafa;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-
-elif st.session_state.theme == 'light':
-    st.markdown("""
-        <style>
-            [data-testid="stAppViewContainer"] {
-                background-color: #ffffff;
-                color: #31333F;
-            }
-            [data-testid="stHeader"] {
-                background-color: #ffffff;
-            }
-            [data-testid="stSidebar"] {
-                background-color: #f0f2f6;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-
-# --- HEADER LAYOUT (TITLE + TOGGLE) ---
-col_title, col_toggle = st.columns([6, 1], gap="small")
-
-with col_title:
-    st.title("Pippafit Tracker")
-
-with col_toggle:
-    # Button Logic:
-    # If currently Dark -> Show Sun (to switch to Light)
-    # If currently Light or System -> Show Moon (to switch to Dark)
-    if st.session_state.theme == 'dark':
-        if st.button("☀️", key="theme_btn", help="Switch to Light Mode"):
-            st.session_state.theme = 'light'
-            st.rerun()
-    else:
-        if st.button("🌙", key="theme_btn", help="Switch to Dark Mode"):
-            st.session_state.theme = 'dark'
-            st.rerun()
+    if theme_choice == "Dark Mode":
+        st.markdown("""
+            <style>
+                :root {
+                    --primary-color: #ff4b4b;
+                    --background-color: #0e1117;
+                    --secondary-background-color: #262730;
+                    --text-color: #fafafa;
+                    --font: sans-serif;
+                }
+                /* Force input backgrounds for dark mode */
+                .stSelectbox > div > div {
+                    background-color: #262730;
+                    color: #fafafa;
+                }
+                .stNumberInput input {
+                    color: #fafafa;
+                }
+            </style>
+            """, unsafe_allow_html=True)
+            
+    elif theme_choice == "Light Mode":
+        st.markdown("""
+            <style>
+                :root {
+                    --primary-color: #ff4b4b;
+                    --background-color: #ffffff;
+                    --secondary-background-color: #f0f2f6;
+                    --text-color: #31333F;
+                    --font: sans-serif;
+                }
+            </style>
+            """, unsafe_allow_html=True)
 
 # --- LOAD MOVEMENT DATABASE ---
 try:
@@ -97,6 +73,9 @@ try:
         history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
 except Exception:
     history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
+
+# --- UI HEADER ---
+st.title("Pippafit Tracker")
 
 # 1. Day Selection
 available_days = movements_db['Day'].unique()
