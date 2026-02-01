@@ -57,17 +57,34 @@ hide_st_style = """
         .logo-dark { display: block; }
     }
     
-    /* Primary Day Button */
+    /* Global Button Base */
+    div.stButton > button {
+        border-radius: 8px;
+    }
+
+    /* Primary Buttons (Day Selected / Save) */
     div.stButton > button[kind="primary"] {
         background-color: #D81B60 !important;
         border-color: #D81B60 !important;
         color: white !important;
     }
 
-    /* Restored Borders for Secondary Day Buttons */
+    /* Secondary Day Buttons */
     div.stButton > button[kind="secondary"] {
         border: 1px solid #d0d0d0 !important;
+    }
+
+    /* SPECIFIC SWAP LINK - Borderless and Small */
+    .swap-link-wrapper div.stButton > button {
+        border: none !important;
         background-color: transparent !important;
+        color: #D81B60 !important;
+        text-decoration: underline !important;
+        font-size: 0.8rem !important;
+        padding: 0 !important;
+        height: auto !important;
+        box-shadow: none !important;
+        min-height: unset !important;
     }
 
     .stNumberInput input { font-weight: bold; }
@@ -91,8 +108,6 @@ hide_st_style = """
         font-size: 1.4rem;
         font-weight: 800;
         line-height: 1.2;
-        display: inline-block;
-        margin-right: 15px;
     }
 
     .warmup-box {
@@ -113,17 +128,6 @@ hide_st_style = """
         font-size: 0.75rem;
         text-align: center;
         margin: 2px 0 10px 0;
-    }
-    
-    .swap-trigger-container .stButton > button {
-        height: auto;
-        padding: 0;
-        border: none !important;
-        background: none !important;
-        color: #D81B60 !important;
-        text-decoration: underline !important;
-        font-size: 0.8rem !important;
-        box-shadow: none !important;
     }
     </style>
 """
@@ -192,7 +196,8 @@ else:
             
             st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
             
-            title_col, swap_col = st.columns([0.7, 0.3])
+            # Layout: Title Left, Tiny Swap Link Right
+            title_col, swap_col = st.columns([0.75, 0.25])
             title_col.markdown(f'<div class="exercise-title">{st.session_state[anchor_key]}</div>', unsafe_allow_html=True)
             
             swap_state_key = f"is_swapping_{muscle}"
@@ -200,7 +205,8 @@ else:
                 st.session_state[swap_state_key] = False
             
             with swap_col:
-                st.markdown('<div class="swap-trigger-container">', unsafe_allow_html=True)
+                # Use wrapper class to target CSS
+                st.markdown('<div class="swap-link-wrapper">', unsafe_allow_html=True)
                 if not st.session_state[swap_state_key]:
                     if st.button("Swap", key=f"btn_swap_{muscle}"):
                         st.session_state[swap_state_key] = True
