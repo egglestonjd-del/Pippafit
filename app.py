@@ -168,7 +168,6 @@ st.markdown("""
     Imagine the <b>OUTCOMES</b> of the effort you put in <b>NOW</b> when you blow out those candles, surrounded by <b>family who loves you.
 
 So let's get to work!
-</b><br><br>
     </b>
 </div>
 """, unsafe_allow_html=True)
