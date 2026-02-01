@@ -21,19 +21,21 @@ hide_st_style = """
     [data-testid="stStatusWidget"] {visibility: hidden !important; display: none !important;}
     .block-container {padding-top: 2rem;}
     
-    /* 2. LOGO STYLING - THE "STICKER" FIX */
-    /* Forces a white rounded box behind the logo so black ink looks correct in Dark Mode */
+    /* 2. LOGO STYLING - CENTERED STICKER FIX */
     div[data-testid="stImage"] {
         background-color: white;
         border-radius: 12px;
         padding: 10px;
         margin-bottom: 20px;
-        display: flex;
-        justify-content: center;
+        
+        /* Centering Magic */
+        display: block;
+        margin-left: auto !important;
+        margin-right: auto !important;
         width: fit-content;
-        margin-left: auto;
-        margin-right: auto;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Subtle shadow for depth */
+        
+        /* Shadow for depth */
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     
     /* 3. GENERAL INPUT STYLING */
@@ -89,7 +91,6 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 # --- EMAIL FUNCTION ---
 def send_workout_email(dataframe):
     try:
-        # Filter for TODAY's logs only
         today_date = datetime.now().date()
         dataframe['Date'] = pd.to_datetime(dataframe['Date'], errors='coerce')
         todays_logs = dataframe[dataframe['Date'].dt.date == today_date]
@@ -97,10 +98,7 @@ def send_workout_email(dataframe):
         if todays_logs.empty:
             return "No logs found for today."
 
-        # Construct Email Body
         lines = [f"Workout Summary for {today_date.strftime('%A, %d %B %Y')}\n"]
-        
-        # Group by Exercise
         exercises = todays_logs['Exercise'].unique()
         for ex in exercises:
             lines.append(f"\n{ex}:")
@@ -109,8 +107,6 @@ def send_workout_email(dataframe):
                 lines.append(f" - {row['Weight']}kg x {row['Reps']} reps")
         
         body = "\n".join(lines)
-        
-        # Send Email
         sender = st.secrets["email"]["sender"]
         password = st.secrets["email"]["password"]
         receiver = st.secrets["email"]["receiver"]
@@ -121,7 +117,6 @@ def send_workout_email(dataframe):
         msg['Subject'] = f"Pippafit Log: {today_date}"
         msg.attach(MIMEText(body, 'plain'))
         
-        # Connect to Gmail SMTP (Standard Port 587)
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(sender, password)
