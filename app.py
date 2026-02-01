@@ -69,12 +69,8 @@ hide_st_style = """
         width: 100%;
         display: flex;
     }
-    button[data-baseweb="tab"]:nth-of-type(1) {
-        width: 80% !important;
-    }
-    button[data-baseweb="tab"]:nth-of-type(2) {
-        width: 20% !important;
-    }
+    button[data-baseweb="tab"]:nth-of-type(1) { width: 80% !important; }
+    button[data-baseweb="tab"]:nth-of-type(2) { width: 20% !important; }
 
     .muscle-header {
         color: #888;
@@ -87,8 +83,9 @@ hide_st_style = """
     .exercise-title {
         font-size: 1.4rem;
         font-weight: 800;
-        margin-bottom: 5px;
         line-height: 1.2;
+        display: inline-block;
+        margin-right: 15px;
     }
 
     .warmup-box {
@@ -104,22 +101,23 @@ hide_st_style = """
         .warmup-box { background-color: #2d1a22; color: #fff; }
     }
 
+    /* Soft Grey Rest Text */
     .rest-text {
-        color: #D81B60;
-        font-size: 0.8rem;
-        font-weight: bold;
+        color: #b0b0b0;
+        font-size: 0.75rem;
         text-align: center;
-        margin: 5px 0;
+        margin: 2px 0 10px 0;
     }
     
-    /* Small Swap Link Styling */
-    .swap-link {
+    /* Inline Swap Trigger */
+    .stButton > button[kind="secondary"] {
+        height: auto;
+        padding: 0;
+        border: none;
+        background: none;
         color: #D81B60;
-        font-size: 0.8rem;
         text-decoration: underline;
-        cursor: pointer;
-        margin-bottom: 15px;
-        display: block;
+        font-size: 0.8rem;
     }
     </style>
 """
@@ -182,27 +180,27 @@ else:
             options = day_data[day_data['Target Group'] == muscle]
             ex_list = options['Exercise'].tolist()
             
-            # Use muscle group as the unique anchor for selection
             anchor_key = f"anchor_{muscle}_{st.session_state.selected_day}"
             if anchor_key not in st.session_state:
                 st.session_state[anchor_key] = ex_list[0]
             
             st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
-            st.markdown(f'<div class="exercise-title">{st.session_state[anchor_key]}</div>', unsafe_allow_html=True)
             
-            # --- SWAP CTA LOGIC ---
+            # Inline Exercise Title + Swap Link
+            title_col, swap_col = st.columns([0.7, 0.3])
+            title_col.markdown(f'<div class="exercise-title">{st.session_state[anchor_key]}</div>', unsafe_allow_html=True)
+            
             swap_state_key = f"is_swapping_{muscle}"
             if swap_state_key not in st.session_state:
                 st.session_state[swap_state_key] = False
             
             if not st.session_state[swap_state_key]:
-                if st.button("Swap exercise", key=f"btn_swap_{muscle}"):
+                if swap_col.button("Swap", key=f"btn_swap_{muscle}"):
                     st.session_state[swap_state_key] = True
                     st.rerun()
             else:
-                # Show dropdown only when swapping is activated
                 selected_ex = st.selectbox(
-                    "Choose replacement", 
+                    "Swap to:", 
                     ex_list, 
                     index=ex_list.index(st.session_state[anchor_key]),
                     key=f"sb_{muscle}_{st.session_state.selected_day}"
@@ -211,16 +209,16 @@ else:
                     st.session_state[anchor_key] = selected_ex
                     st.session_state[swap_state_key] = False
                     st.rerun()
-                if st.button("Cancel swap", key=f"cancel_{muscle}"):
+                if st.button("Cancel", key=f"cancel_{muscle}"):
                     st.session_state[swap_state_key] = False
                     st.rerun()
 
             current_exercise = st.session_state[anchor_key]
             
-            # Tutorial Video
+            # Watch demo
             video = options[options['Exercise'] == current_exercise].iloc[0]['Video Link']
             if pd.notna(video) and str(video).strip():
-                with st.expander("▶️ Exercise tutorial"):
+                with st.expander("▶️ Watch demo"):
                     st.video(format_youtube_url(str(video).strip()))
 
             ex_history = history_df[history_df['Exercise'] == current_exercise].copy()
