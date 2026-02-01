@@ -2,6 +2,9 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # --- CONFIG ---
 st.set_page_config(page_title="Pippafit 65", page_icon="💪")
@@ -18,7 +21,15 @@ hide_st_style = """
     [data-testid="stStatusWidget"] {visibility: hidden !important; display: none !important;}
     .block-container {padding-top: 2rem;}
     
-    /* 2. GENERAL INPUT STYLING */
+    /* 2. LOGO STYLING (The Dark Mode Fix) */
+    /* This targets the logo image and inverts it (Black -> White) ONLY in Dark Mode */
+    @media (prefers-color-scheme: dark) {
+        [data-testid="stImage"] img {
+            filter: invert(1) brightness(2);
+        }
+    }
+    
+    /* 3. GENERAL INPUT STYLING */
     .stNumberInput input {
         font-weight: bold;
         background-color: transparent;
@@ -30,7 +41,7 @@ hide_st_style = """
         padding: 2px;
     }
     
-    /* 3. TABS STYLING */
+    /* 4. TABS STYLING */
     [data-baseweb="tab-list"] {
         width: 100%;
         display: flex;
@@ -50,7 +61,7 @@ hide_st_style = """
         color: #888; 
     }
 
-    /* 4. EDIT MODE STYLING */
+    /* 5. EDIT MODE STYLING */
     input[aria-label="W"], input[aria-label="R"] {
         color: #b36b00 !important;              
     }
@@ -60,13 +71,58 @@ hide_st_style = """
         background-color: #fffbf0 !important;   
     }
     
-    /* 5. TIGHTEN SUB-BOX HEADERS */
+    /* 6. TIGHTEN SUB-BOX HEADERS */
     div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
         gap: 0.5rem;
     }
     </style>
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
+
+# --- EMAIL FUNCTION ---
+def send_workout_email(dataframe):
+    try:
+        # Filter for TODAY's logs only
+        today_date = datetime.now().date()
+        dataframe['Date'] = pd.to_datetime(dataframe['Date'], errors='coerce')
+        todays_logs = dataframe[dataframe['Date'].dt.date == today_date]
+
+        if todays_logs.empty:
+            return "No logs found for today."
+
+        # Construct Email Body
+        lines = [f"Workout Summary for {today_date.strftime('%A, %d %B %Y')}\n"]
+        
+        # Group by Exercise
+        exercises = todays_logs['Exercise'].unique()
+        for ex in exercises:
+            lines.append(f"\n{ex}:")
+            ex_data = todays_logs[todays_logs['Exercise'] == ex]
+            for _, row in ex_data.iterrows():
+                lines.append(f" - {row['Weight']}kg x {row['Reps']} reps")
+        
+        body = "\n".join(lines)
+        
+        # Send Email
+        sender = st.secrets["email"]["sender"]
+        password = st.secrets["email"]["password"]
+        receiver = st.secrets["email"]["receiver"]
+        
+        msg = MIMEMultipart()
+        msg['From'] = sender
+        msg['To'] = receiver
+        msg['Subject'] = f"Pippafit Log: {today_date}"
+        msg.attach(MIMEText(body, 'plain'))
+        
+        # Connect to Gmail SMTP (Standard Port 587)
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender, password)
+        server.sendmail(sender, receiver, msg.as_string())
+        server.quit()
+        return "Email sent!"
+    except Exception as e:
+        return f"Email failed: {e}"
 
 # --- AUTO-FILL CALLBACK ---
 def update_weights(ex_key):
@@ -95,10 +151,15 @@ try:
 except Exception:
     history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
 
-# --- UI HEADER ---
-st.title("Pippafit 65")
+# --- UI HEADER (LOGO ADDED HERE) ---
+# We replaced st.title() with st.image()
+# The 'width' parameter controls the size (250px is usually good for a centered logo)
+try:
+    st.image("Pippafit.png", width=250) 
+except:
+    st.title("Pippafit 65") # Fallback if image fails to load
 
-# --- DAY SELECTION LOGIC (BUTTONS) ---
+# --- DAY SELECTION ---
 if 'selected_day' not in st.session_state:
     today_name = datetime.now().strftime("%A")
     if today_name in ["Monday", "Wednesday", "Saturday"]:
@@ -107,7 +168,6 @@ if 'selected_day' not in st.session_state:
         st.session_state.selected_day = "Monday" 
 
 col_mon, col_wed, col_sat = st.columns(3)
-
 style_mon = "primary" if st.session_state.selected_day == "Monday" else "secondary"
 style_wed = "primary" if st.session_state.selected_day == "Wednesday" else "secondary"
 style_sat = "primary" if st.session_state.selected_day == "Saturday" else "secondary"
@@ -115,11 +175,9 @@ style_sat = "primary" if st.session_state.selected_day == "Saturday" else "secon
 if col_mon.button("Monday", type=style_mon, use_container_width=True):
     st.session_state.selected_day = "Monday"
     st.rerun()
-
 if col_wed.button("Wednesday", type=style_wed, use_container_width=True):
     st.session_state.selected_day = "Wednesday"
     st.rerun()
-
 if col_sat.button("Saturday", type=style_sat, use_container_width=True):
     st.session_state.selected_day = "Saturday"
     st.rerun()
@@ -132,24 +190,13 @@ if day_data.empty:
 else:
     target_groups = list(dict.fromkeys(day_data['Target Group']))
     
-    # Loop through exercises
     for group in target_groups:
-        
-        # --- START EXERCISE CARD ---
         with st.container(border=True):
-            
             group_options = day_data[day_data['Target Group'] == group]
             exercise_list = group_options['Exercise'].tolist()
             
             st.markdown(f"### {group}") 
-            
-            selected_exercise = st.selectbox(
-                "Select Movement", 
-                exercise_list, 
-                index=0, 
-                key=f"select_{group}_{st.session_state.selected_day}",
-                label_visibility="collapsed"
-            )
+            selected_exercise = st.selectbox("Select Movement", exercise_list, index=0, key=f"select_{group}_{st.session_state.selected_day}", label_visibility="collapsed")
 
             current_exercise_row = group_options[group_options['Exercise'] == selected_exercise]
             if not current_exercise_row.empty:
@@ -160,7 +207,6 @@ else:
 
             ex_history = history_df[history_df['Exercise'] == selected_exercise].copy()
             target_msg = "No history"
-            
             if not ex_history.empty:
                 ex_history['Date'] = pd.to_datetime(ex_history['Date'], errors='coerce')
                 last_date = ex_history.sort_values(by='Date').iloc[-1]['Date']
@@ -168,42 +214,34 @@ else:
                 best_set = last_session.sort_values(by=['Weight', 'Reps'], ascending=True).iloc[-1]
                 target_msg = f"Target to beat: {float(best_set['Weight'])}kg x {int(best_set['Reps'])}"
                 
-            # --- TAB INTERFACE ---
             tab_log, tab_edit = st.tabs(["Exercise", "Edit"])
 
-            # --- TAB 1: EXERCISE ---
             with tab_log:
                 st.caption(f"**{target_msg}**")
-                
                 k_w1, k_r1 = f"{selected_exercise}_w1", f"{selected_exercise}_r1"
                 k_w2, k_r2 = f"{selected_exercise}_w2", f"{selected_exercise}_r2"
                 k_w3, k_r3 = f"{selected_exercise}_w3", f"{selected_exercise}_r3"
 
-                # --- SET 1 BOX ---
                 with st.container(border=True):
                     st.markdown("**Set 1**")
                     c1, c2 = st.columns([1, 1], gap="small")
                     c1.number_input("Kg", value=None, step=1.25, key=k_w1, on_change=update_weights, args=(selected_exercise,))
                     c2.number_input("Reps", value=None, step=1, key=k_r1)
 
-                # --- SET 2 BOX ---
                 with st.container(border=True):
                     st.markdown("**Set 2**")
                     c3, c4 = st.columns([1, 1], gap="small")
                     c3.number_input("Kg", value=None, step=1.25, key=k_w2)
                     c4.number_input("Reps", value=None, step=1, key=k_r2)
 
-                # --- SET 3 BOX ---
                 with st.container(border=True):
                     st.markdown("**Set 3**")
                     c5, c6 = st.columns([1, 1], gap="small")
                     c5.number_input("Kg", value=None, step=1.25, key=k_w3)
                     c6.number_input("Reps", value=None, step=1, key=k_r3)
 
-                # SPACER BEFORE BUTTON
                 st.markdown("<div style='height: 10px'></div>", unsafe_allow_html=True)
 
-                # SAVE BUTTON (Changed Label, removed balloon trigger)
                 if st.button("SAVE SETS", type="primary", key=f"btn_{selected_exercise}", use_container_width=True):
                     w1, r1 = st.session_state.get(k_w1), st.session_state.get(k_r1)
                     w2, r2 = st.session_state.get(k_w2), st.session_state.get(k_r2)
@@ -211,7 +249,6 @@ else:
 
                     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     new_logs = []
-
                     if r1 is not None and r1 > 0: new_logs.append({"Date": now_str, "Exercise": selected_exercise, "Weight": w1 if w1 else 0, "Reps": r1})
                     if r2 is not None and r2 > 0: new_logs.append({"Date": now_str, "Exercise": selected_exercise, "Weight": w2 if w2 else 0, "Reps": r2})
                     if r3 is not None and r3 > 0: new_logs.append({"Date": now_str, "Exercise": selected_exercise, "Weight": w3 if w3 else 0, "Reps": r3})
@@ -223,10 +260,8 @@ else:
                         st.toast("Sets Saved!", icon="✅")
                         st.rerun()
 
-            # --- TAB 2: EDIT HISTORY ---
             with tab_edit:
                 recent_logs = history_df[history_df['Exercise'] == selected_exercise].sort_values(by='Date', ascending=False).head(5)
-                
                 if recent_logs.empty:
                     st.info("No logs to edit.")
                 else:
@@ -234,9 +269,7 @@ else:
                     for idx, row in recent_logs.iterrows():
                         d_str = pd.to_datetime(row['Date']).strftime("%b %d %H:%M")
                         st.caption(f"**{d_str}**")
-                        
                         hc1, hc2, hc3, hc4 = st.columns([1.5, 1.5, 0.7, 0.7], gap="small")
-                        
                         new_w = hc1.number_input("W", value=float(row['Weight']), step=1.25, key=f"edit_w_{idx}", label_visibility="collapsed")
                         new_r = hc2.number_input("R", value=int(row['Reps']), step=1, key=f"edit_r_{idx}", label_visibility="collapsed")
                         
@@ -252,13 +285,13 @@ else:
                             conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=history_df)
                             st.toast("Deleted!", icon="🗑️")
                             st.rerun()
-                        
                         st.divider()
     
-    # --- END OF EXERCISE LOOP ---
-    
     st.divider()
-    # THE BIG FINISH BUTTON
     if st.button("WORKOUT COMPLETED!!!", type="primary", use_container_width=True):
         st.balloons()
-        st.success("Great job! Workout recorded.")
+        status = send_workout_email(history_df)
+        if "Email sent" in status:
+            st.success(f"Great job! Summary emailed to {st.secrets['email']['receiver']}")
+        else:
+            st.warning(status)
