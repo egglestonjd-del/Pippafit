@@ -65,7 +65,6 @@ hide_st_style = """
 
     .stNumberInput input { font-weight: bold; }
     
-    /* 80/20 Tab Width Adjustment */
     [data-baseweb="tab-list"] {
         width: 100%;
         display: flex;
@@ -120,6 +119,14 @@ hide_st_style = """
     @media (prefers-color-scheme: dark) {
         .warmup-box { background-color: #2d1a22; color: #fff; }
     }
+
+    .rest-text {
+        color: #D81B60;
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-align: center;
+        margin: 5px 0;
+    }
     </style>
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -148,13 +155,13 @@ img_dark = get_base64_image("Pippafit_Dark.png")
 if img_light and img_dark:
     st.markdown(f'<div class="logo-container"><img src="data:image/png;base64,{img_light}" class="logo-light"><img src="data:image/png;base64,{img_dark}" class="logo-dark"></div>', unsafe_allow_html=True)
 
-# --- DAY SELECTION ---
-days = ["Monday", "Tuesday", "Thursday", "Saturday"]
+# --- DAY SELECTION (UPDATED TO MON/WED/SAT) ---
+days = ["Monday", "Wednesday", "Saturday"]
 if 'selected_day' not in st.session_state:
     curr_day = datetime.now().strftime("%A")
     st.session_state.selected_day = curr_day if curr_day in days else "Monday"
 
-cols = st.columns(4)
+cols = st.columns(3)
 for i, day in enumerate(days):
     if cols[i].button(day, type="primary" if st.session_state.selected_day == day else "secondary", use_container_width=True):
         st.session_state.selected_day = day
@@ -211,14 +218,16 @@ else:
             with tab_log:
                 st.caption(f"**{target_msg}**")
                 for i in range(1, 4):
-                    # Bordered container for each set
                     with st.container(border=True):
                         st.markdown(f"###### Set {i}")
                         kw, kr = f"{selected_ex}_w{i}", f"{selected_ex}_r{i}"
                         c_w, c_r = st.columns(2)
-                        # Removed "Set X" prefixes from input labels
                         c_w.number_input("Kg", value=None, step=1.25, key=kw, on_change=update_weights if i==1 else None, args=(selected_ex,) if i==1 else None)
                         c_r.number_input("Reps", value=None, step=1, key=kr)
+                    
+                    # Add rest text between sets 1-2 and 2-3
+                    if i < 3:
+                        st.markdown('<p class="rest-text">Rest 1 min between sets</p>', unsafe_allow_html=True)
 
                 if st.button("SAVE SETS", type="primary", key=f"save_{selected_ex}_{muscle}", use_container_width=True):
                     new_rows = []
