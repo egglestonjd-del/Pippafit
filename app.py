@@ -132,11 +132,13 @@ if col_sat.button("Saturday", type= "primary" if st.session_state.selected_day =
     st.rerun()
 
 # --- WARM UP INSTRUCTION ---
-# Using triple quotes to avoid SyntaxErrors with apostrophes
 st.markdown("""
 <div class="warmup-box">
-    🏃 <b>Warm up:</b> 10 minutes on the treadmill.<br><br>
-    Visualise the gift you give yourself when you turn 65. Imagine the outcomes of the effort you put in NOW when you blow out the candles on your 65th birthday cake surrounded by your family that loves you - that's gonna be pretty sweet.
+    <h3 style="margin-top:0; color:#D81B60;">🔥 THE PRE-GAME</h3>
+    🏃 <b>10 MINS</b> | Treadmill<br><br>
+    <b>VISUALISE</b> the gift you give yourself at <b>65</b>.<br><br>
+    Imagine the <b>OUTCOMES</b> of the effort you put in <b>NOW</b> when you blow out those candles, surrounded by <b>family who loves you.</b><br><br>
+    That’s going to be <b>pretty sweet.</b>
 </div>
 """, unsafe_allow_html=True)
 
