@@ -73,8 +73,29 @@ hide_st_style = """
     .exercise-title {
         font-size: 1.4rem;
         font-weight: 800;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
         line-height: 1.2;
+    }
+
+    /* INLINE SELECTBOX CSS */
+    div[data-testid="stSelectbox"] > label {
+        display: none; /* Hide default label to use our custom inline one if needed, or... */
+    }
+    
+    .inline-label-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    .inline-label-container > label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #D81B60;
+        white-space: nowrap;
+    }
+    .inline-label-container > div {
+        flex-grow: 1;
     }
 
     .warmup-box {
@@ -162,28 +183,24 @@ else:
             options = day_data[day_data['Target Group'] == muscle]
             ex_list = options['Exercise'].tolist()
             
-            # Persistent selection for swapping
             sb_key = f"sb_{muscle}_{st.session_state.selected_day}"
             if sb_key not in st.session_state:
                 st.session_state[sb_key] = ex_list[0]
             
-            # 1. DISPLAY TARGET GROUP (Small/Subtle)
             st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
-            
-            # 2. DISPLAY CURRENT EXERCISE (Bold/Primary)
             st.markdown(f'<div class="exercise-title">{st.session_state[sb_key]}</div>', unsafe_allow_html=True)
             
-            # 3. SWAP SELECTOR (Secondary interaction)
-            selected_ex = st.selectbox("Swap exercise", ex_list, key=sb_key, label_visibility="visible")
+            # CUSTOM INLINE CONTAINER
+            st.markdown('<div class="inline-label-container"><label>Swap exercise</label>', unsafe_allow_html=True)
+            selected_ex = st.selectbox("Swap exercise", ex_list, key=sb_key, label_visibility="collapsed")
+            st.markdown('</div>', unsafe_allow_html=True)
             
-            # Video tutorial for current selection
             raw_video = options[options['Exercise'] == selected_ex].iloc[0]['Video Link']
             if pd.notna(raw_video) and str(raw_video).strip():
                 clean_video = format_youtube_url(str(raw_video).strip())
                 with st.expander("▶️ Exercise tutorial"):
                     st.video(clean_video)
 
-            # History / Target
             ex_history = history_df[history_df['Exercise'] == selected_ex].copy()
             target_msg = "No history"
             if not ex_history.empty:
