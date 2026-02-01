@@ -19,7 +19,6 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 # Fetch existing logs
 try:
-    # We read the sheet into a DataFrame. The 'index' of this DF corresponds to the row number.
     history_df = conn.read(spreadsheet=SHEET_URL, worksheet="Logs", usecols=[0, 1, 2, 3], ttl=0)
     if history_df.empty:
         history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
@@ -64,8 +63,17 @@ else:
             label_visibility="collapsed"
         )
 
+        # --- VIDEO DISPLAY ---
+        current_exercise_row = group_options[group_options['Exercise'] == selected_exercise]
+        
+        if not current_exercise_row.empty:
+            video_url = current_exercise_row.iloc[0]['Video Link']
+            if pd.notna(video_url) and str(video_url).startswith("http"):
+                # Using the Play Button Emoji
+                with st.expander("▶️ Watch Tutorial"):
+                    st.video(video_url)
+
         # --- DATA PREP ---
-        # Get History & Determine "Target to Beat"
         ex_history = history_df[history_df['Exercise'] == selected_exercise].copy()
         last_weight = 0.0
         target_msg = "No history"
@@ -74,7 +82,6 @@ else:
             ex_history['Date'] = pd.to_datetime(ex_history['Date'], errors='coerce')
             ex_history = ex_history.sort_values(by='Date')
             
-            # Find stats from the LAST session only
             last_date = ex_history.iloc[-1]['Date']
             last_session_df = ex_history[ex_history['Date'].dt.date == last_date.date()]
             best_set = last_session_df.sort_values(by=['Weight', 'Reps'], ascending=True).iloc[-1]
@@ -111,36 +118,28 @@ else:
                 
                 if new_logs:
                     new_df = pd.DataFrame(new_logs)
-                    # Append new logs to the master DF
                     updated_df = pd.concat([history_df, new_df], ignore_index=True)
-                    # Update Google Sheet
                     conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=updated_df)
                     st.success(f"Logged {selected_exercise}!")
                     st.rerun()
 
-        # --- MANAGE HISTORY (DELETE FUNCTION) ---
+        # --- MANAGE HISTORY ---
         with st.expander(f"Manage History: {selected_exercise}"):
-            # We filter for this exercise, but we keep the original Index so we know which row to delete
             recent_logs = history_df[history_df['Exercise'] == selected_exercise].sort_values(by='Date', ascending=False).head(5)
             
             if recent_logs.empty:
                 st.caption("No logs found.")
             else:
                 for idx, row in recent_logs.iterrows():
-                    # Format: "Jan 01 12:30 | 50kg x 10"
                     d_str = pd.to_datetime(row['Date']).strftime("%b %d %H:%M")
                     display_text = f"{d_str} | **{row['Weight']}kg** x {row['Reps']}"
                     
-                    # Layout: Text on left, Delete button on right
                     col_txt, col_btn = st.columns([4, 1])
                     with col_txt:
                         st.markdown(display_text)
                     with col_btn:
-                        # Unique key is crucial here
                         if st.button("❌", key=f"del_{idx}"):
-                            # Drop the row from the master dataframe using its index
                             history_df = history_df.drop(idx)
-                            # Push the entire updated dataframe back to Google Sheets
                             conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=history_df)
                             st.toast(f"Deleted entry!", icon="🗑️")
                             st.rerun()
