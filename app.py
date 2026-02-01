@@ -70,7 +70,6 @@ hide_st_style = """
         margin-bottom: -10px;
     }
 
-    /* Warm up box styling */
     .warmup-box {
         background-color: #fff0f5;
         border-left: 5px solid #D81B60;
@@ -78,6 +77,7 @@ hide_st_style = """
         border-radius: 5px;
         margin-bottom: 25px;
         color: #000;
+        line-height: 1.4;
     }
     @media (prefers-color-scheme: dark) {
         .warmup-box {
@@ -132,7 +132,13 @@ if col_sat.button("Saturday", type= "primary" if st.session_state.selected_day =
     st.rerun()
 
 # --- WARM UP INSTRUCTION ---
-st.markdown('<div class="warmup-box">🏃 <b>Warm up:</b> 10 minutes on the treadmill. Visualise the gift you give yourself when you turn 65. Imagine the outcomes of the effort you put in NOW when you blow out the candles on your 65th birthday cake surrounded by your family that loves you - that's gonna be pretty sweet.</div>', unsafe_allow_html=True)
+# Using triple quotes to avoid SyntaxErrors with apostrophes
+st.markdown("""
+<div class="warmup-box">
+    🏃 <b>Warm up:</b> 10 minutes on the treadmill.<br><br>
+    Visualise the gift you give yourself when you turn 65. Imagine the outcomes of the effort you put in NOW when you blow out the candles on your 65th birthday cake surrounded by your family that loves you - that's gonna be pretty sweet.
+</div>
+""", unsafe_allow_html=True)
 
 # --- THE MUSCLE GROUP SPREAD ---
 day_data = movements_db[movements_db['Day'] == st.session_state.selected_day]
@@ -164,8 +170,9 @@ else:
                 ex_history['Date'] = pd.to_datetime(ex_history['Date'], errors='coerce')
                 last_session_date = ex_history.sort_values(by='Date').iloc[-1]['Date'].date()
                 last_session = ex_history[ex_history['Date'].dt.date == last_session_date]
-                best = last_session.sort_values(by=['Weight', 'Reps']).iloc[-1]
-                target_msg = f"Target: {float(best['Weight'])}kg x {int(best['Reps'])}"
+                if not last_session.empty:
+                    best = last_session.sort_values(by=['Weight', 'Reps']).iloc[-1]
+                    target_msg = f"Target: {float(best['Weight'])}kg x {int(best['Reps'])}"
 
             tab_log, tab_edit = st.tabs(["Log Sets", "Edit"])
 
