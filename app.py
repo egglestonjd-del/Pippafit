@@ -5,113 +5,109 @@ from datetime import datetime
 
 # --- CONFIG ---
 st.set_page_config(page_title="Pippafit Tracker", page_icon="💪")
-# URL provided previously
-SHEET_URL = "https://docs.google.com/spreadsheets/d/1wNtahXuCiVUUfSS_DuqpccR2s1y3EZE2IoEfgeFu0ig"
+SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 
-# --- LOAD MOVEMENT DATABASE (CSV) ---
+# --- LOAD MOVEMENT DATABASE ---
 try:
-    # UPDATED: Reading from the new filename
     movements_db = pd.read_csv("Pippafit_data.csv")
 except FileNotFoundError:
-    st.error("Error: Pippafit_data.csv not found. Check your folder.")
+    st.error("Error: Pippafit_data.csv not found. Ensure it is committed to GitHub.")
     st.stop()
 
-# --- CONNECT TO GOOGLE SHEET (LOGS) ---
+# --- CONNECT TO GOOGLE SHEET ---
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# Read existing logs from 'Logs' tab
+# Fetch existing logs
 try:
     history_df = conn.read(spreadsheet=SHEET_URL, worksheet="Logs", usecols=[0, 1, 2, 3], ttl=0)
+    # Ensure columns exist
     if history_df.empty:
         history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
 except Exception:
     history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
 
-# --- UI LOGIC ---
+# --- UI HEADER ---
 st.title("Pippafit Tracker")
 
 # 1. Day Selection
-day_order = ['Monday', 'Wednesday', 'Saturday']
+# Get unique days from CSV (maintains CSV order if possible, otherwise sorts)
 available_days = movements_db['Day'].unique()
-# Sort available days: Mon/Wed/Sat first, others appended
-sorted_days = sorted(available_days, key=lambda x: day_order.index(x) if x in day_order else 99)
-selected_day = st.selectbox("Day", sorted_days)
+# Try to default to today's day if it's in the list
+today_name = datetime.now().strftime("%A")
+default_ix = 0
+if today_name in available_days:
+    default_ix = list(available_days).index(today_name)
 
-# Filter: Day
-day_moves = movements_db[movements_db['Day'] == selected_day]
+selected_day = st.selectbox("Select Routine", available_days, index=default_ix)
 
-# 2. Target Group Selection
-groups = day_moves['Target Group'].unique()
-selected_group = st.selectbox("Muscle Group", groups)
+# 2. Filter Exercises for the Day
+todays_exercises = movements_db[movements_db['Day'] == selected_day]
 
-# Filter: Group
-group_moves = day_moves[day_moves['Target Group'] == selected_group]
-
-# 3. Exercise Selection (Core First)
-core_row = group_moves[group_moves['Status'] == 'Core']
-exercise_options = group_moves['Exercise'].tolist()
-
-default_idx = 0
-if not core_row.empty:
-    core_name = core_row.iloc[0]['Exercise']
-    if core_name in exercise_options:
-        default_idx = exercise_options.index(core_name)
-
-selected_exercise = st.selectbox("Exercise", exercise_options, index=default_idx)
-
-# 4. Video Link
-current_ex_data = group_moves[group_moves['Exercise'] == selected_exercise].iloc[0]
-video_url = current_ex_data['Video Link']
-
-if pd.notna(video_url) and str(video_url).startswith('http'):
-    st.markdown(f"**[🎥 Watch Demo]({video_url})**")
-
-# --- HISTORY & INPUT ---
-st.divider()
-
-# Filter history for THIS specific exercise
-ex_history = history_df[history_df['Exercise'] == selected_exercise].copy()
-
-# Determine Target
-target_weight = 0.0
-target_reps_msg = "No history"
-
-if not ex_history.empty:
-    ex_history['Date'] = pd.to_datetime(ex_history['Date'])
-    last_log = ex_history.sort_values(by='Date').iloc[-1]
-    target_weight = float(last_log['Weight'])
-    target_reps_msg = f"{last_log['Reps']} reps"
-    
-    st.metric(
-        label="TARGET (Last Session)",
-        value=f"{target_weight} kg",
-        delta=target_reps_msg
-    )
+if todays_exercises.empty:
+    st.info(f"No exercises found for {selected_day}.")
 else:
-    st.info("No previous logs for this specific exercise.")
-
-# Input Form
-with st.form("log_form"):
-    c1, c2 = st.columns(2)
-    weight_in = c1.number_input("Weight (kg)", value=target_weight, step=1.25)
-    reps_in = c2.number_input("Reps", value=8, step=1)
+    st.write(f"**Routine for {selected_day}**")
     
-    if st.form_submit_button("LOG SET", type="primary"):
-        new_row = pd.DataFrame([{
-            "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "Exercise": selected_exercise,
-            "Weight": weight_in,
-            "Reps": reps_in
-        }])
+    # --- RENDER EXERCISE BLOCKS ---
+    for index, row in todays_exercises.iterrows():
+        exercise = row['Exercise']
         
-        # Append locally
-        updated_df = pd.concat([history_df, new_row], ignore_index=True)
-        # Push to Google Sheet 'Logs' tab
-        conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=updated_df)
+        # A. Get Target (Last Log)
+        ex_history = history_df[history_df['Exercise'] == exercise].copy()
+        last_weight = 0.0
+        last_reps = 0
+        target_msg = "No history"
         
-        st.success(f"Logged {selected_exercise}!")
-        st.rerun()
+        if not ex_history.empty:
+            ex_history['Date'] = pd.to_datetime(ex_history['Date'], errors='coerce')
+            ex_history = ex_history.sort_values(by='Date')
+            last_entry = ex_history.iloc[-1]
+            last_weight = float(last_entry['Weight'])
+            last_reps = int(last_entry['Reps'])
+            target_msg = f"Last: {last_weight}kg x {last_reps}"
 
-# Recent Logs Display
-st.subheader("Session Logs")
-st.dataframe(history_df.tail(5).iloc[::-1], hide_index=True)
+        # B. Create the Block (Form)
+        with st.form(key=f"form_{exercise}"):
+            st.subheader(exercise)
+            st.caption(target_msg)
+            
+            # Create 3 Sets of Inputs
+            # Using columns for compact layout: [Weight] [Reps]
+            
+            # Set 1
+            c1, c2 = st.columns([1, 1])
+            w1 = c1.number_input("Set 1 Kg", value=last_weight, step=1.25, key=f"{exercise}_w1")
+            r1 = c2.number_input("Set 1 Reps", value=8, step=1, key=f"{exercise}_r1")
+            
+            # Set 2
+            c3, c4 = st.columns([1, 1])
+            w2 = c3.number_input("Set 2 Kg", value=last_weight, step=1.25, key=f"{exercise}_w2")
+            r2 = c4.number_input("Set 2 Reps", value=8, step=1, key=f"{exercise}_r2")
+            
+            # Set 3
+            c5, c6 = st.columns([1, 1])
+            w3 = c5.number_input("Set 3 Kg", value=last_weight, step=1.25, key=f"{exercise}_w3")
+            r3 = c6.number_input("Set 3 Reps", value=8, step=1, key=f"{exercise}_r3")
+
+            # Submit Button
+            if st.form_submit_button(f"LOG {exercise.upper()}", type="primary"):
+                # timestamp
+                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Prepare rows to add
+                new_logs = []
+                
+                # Only add sets that have > 0 reps to avoid empty logs
+                if r1 > 0:
+                    new_logs.append({"Date": now_str, "Exercise": exercise, "Weight": w1, "Reps": r1})
+                if r2 > 0:
+                    new_logs.append({"Date": now_str, "Exercise": exercise, "Weight": w2, "Reps": r2})
+                if r3 > 0:
+                    new_logs.append({"Date": now_str, "Exercise": exercise, "Weight": w3, "Reps": r3})
+                
+                if new_logs:
+                    new_df = pd.DataFrame(new_logs)
+                    updated_df = pd.concat([history_df, new_df], ignore_index=True)
+                    conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=updated_df)
+                    st.success(f"Logged 3 sets for {exercise}!")
+                    st.rerun() # Refresh to update targets
