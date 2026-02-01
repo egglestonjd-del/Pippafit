@@ -3,11 +3,28 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 import base64
-import time  # NEW: Added for rate-limit protection
+import time
 
 # --- CONFIG ---
 st.set_page_config(page_title="Pippafit 65", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
+
+# --- CACHED DATA LOADING ---
+# This prevents the 429 "Quota Exceeded" error by keeping data in memory for 10 minutes
+@st.cache_data(ttl=600)
+def get_movements_data():
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    return conn.read(spreadsheet=SHEET_URL, worksheet="Exercise_bank")
+
+# We use a shorter TTL (10 seconds) for logs so you see your updates almost immediately 
+# without spamming the API on every keystroke
+@st.cache_data(ttl=10)
+def get_logs_data():
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    df = conn.read(spreadsheet=SHEET_URL, worksheet="Logs", usecols=[0, 1, 2, 3])
+    if df.empty:
+        return pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
+    return df
 
 # --- HELPER: CONVERT SHORTS TO STANDARD URL ---
 def format_youtube_url(url):
@@ -126,15 +143,12 @@ def update_weights(ex_key):
         if st.session_state.get(w2_key) is None: st.session_state[w2_key] = val_w1
         if st.session_state.get(w3_key) is None: st.session_state[w3_key] = val_w1
 
-# --- CONNECT & LOAD ---
-conn = st.connection("gsheets", type=GSheetsConnection)
-
+# --- LOAD DATA ---
 try:
-    movements_db = conn.read(spreadsheet=SHEET_URL, worksheet="Exercise_bank", ttl=0)
-    history_df = conn.read(spreadsheet=SHEET_URL, worksheet="Logs", usecols=[0, 1, 2, 3], ttl=0)
-    if history_df.empty: history_df = pd.DataFrame(columns=['Date', 'Exercise', 'Weight', 'Reps'])
+    movements_db = get_movements_data()
+    history_df = get_logs_data()
 except Exception as e:
-    st.error(f"Sheet Error: {e}")
+    st.error(f"Quota issue or Sheet Error. Waiting to retry...")
     st.stop()
 
 # --- UI HEADER ---
@@ -199,6 +213,7 @@ else:
                 with st.expander("▶️ Exercise tutorial"):
                     st.video(clean_video)
 
+            # Target / History logic
             ex_history = history_df[history_df['Exercise'] == selected_ex].copy()
             target_msg = "No history"
             if not ex_history.empty:
@@ -233,10 +248,10 @@ else:
                                 "Reps": val_r
                             })
                     if new_rows:
-                        # NEW: Cooldown to prevent "Bot" flagging
-                        with st.spinner("Syncing with Google..."):
-                            time.sleep(0.5) 
+                        with st.spinner("Syncing..."):
+                            conn = st.connection("gsheets", type=GSheetsConnection)
                             conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=pd.concat([history_df, pd.DataFrame(new_rows)], ignore_index=True))
+                            st.cache_data.clear() # Clear cache so the next load sees the new data
                         st.toast(f"{selected_ex} logged!", icon="✅")
                         st.rerun()
 
@@ -250,7 +265,9 @@ else:
                         nw = ec1.number_input("W", value=float(row['Weight']), key=f"editw_{idx}")
                         nr = ec2.number_input("R", value=int(row['Reps']), key=f"editr_{idx}")
                         if ec3.button("❌", key=f"del_{idx}"):
+                            conn = st.connection("gsheets", type=GSheetsConnection)
                             conn.update(spreadsheet=SHEET_URL, worksheet="Logs", data=history_df.drop(idx))
+                            st.cache_data.clear()
                             st.rerun()
 
     st.divider()
