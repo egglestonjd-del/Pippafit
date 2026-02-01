@@ -121,6 +121,12 @@ hide_st_style = """
         text-align: center;
         margin: 2px 0 10px 0;
     }
+
+    /* Info Expander Styling */
+    .info-text {
+        color: #888;
+        font-size: 0.85rem;
+    }
     </style>
 """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -220,23 +226,23 @@ else:
                 with st.expander("▶️ Watch demo"):
                     st.video(format_youtube_url(str(video).strip()))
 
-            # --- EXERCISE SPECIFIC WARM UP / WEIGHT SELECTION ---
-            with st.expander("🔥 Warm up"):
+            # --- INFO EXPANDER ---
+            with st.expander("ⓘ info"):
                 st.markdown("""
-                **Working Weight Selection**
-                * Choose a resistance you can move for **5–18 reps** only.
-                * If you exceed 18 reps, **increase weight**.
-                * If you fail before 5 reps, **reduce weight**.
-                * Final reps should be difficult but controlled, with good form.
-
-                **Warm-Up Protocol**
-                1. Start at **50%** of your estimated max.
-                2. Perform **8–12 easy reps**.
-                3. Increase weight in **small steps**.
-                4. Stop when the weight feels challenging but sustainable for the target rep range.
-                
-                *This is your working weight.*
-                """)
+                <div class="info-text">
+                <strong>Working Weight Selection</strong><br>
+                • Choose a resistance you can move for 5–18 reps only.<br>
+                • If you exceed 18 reps, increase weight.<br>
+                • If you fail before 5 reps, reduce weight.<br>
+                • Final reps should be difficult but controlled, with good form.<br><br>
+                <strong>Warm-Up Protocol</strong><br>
+                • Begin at 50% of your estimated max.<br>
+                • Perform 6–10 controlled, easy reps.<br>
+                • Increase weight to 90% of working weight.<br>
+                • Test the new weight for a few reps.<br>
+                • It should feel challenging but maintainable within the target rep range.
+                </div>
+                """, unsafe_allow_html=True)
 
             ex_history = history_df[history_df['Exercise'] == current_exercise].copy()
             target_msg = "No history"
