@@ -12,6 +12,8 @@ from email.mime.multipart import MIMEMultipart
 st.set_page_config(page_title="Pippafit 65", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 
+
+
 # --- EMAIL FUNCTION ---
 def send_workout_email(summary_html):
     try:
@@ -291,6 +293,11 @@ else:
                 if not last_session.empty:
                     best = last_session.sort_values(by=['Weight', 'Reps']).iloc[-1]
                     target_msg = f"Target: {float(best['Weight'])}kg x {int(best['Reps'])}"
+
+# Filter history for current exercise
+chart_data = history_df[history_df['Exercise'] == current_exercise][['Date', 'Weight']].copy()
+if not chart_data.empty:
+    st.line_chart(chart_data, x='Date', y='Weight', height=150)
 
             tab_log, tab_edit = st.tabs(["Log Sets", "Edit"])
 
