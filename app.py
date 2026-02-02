@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
@@ -459,5 +458,3 @@ with tab_prog:
             st.write("Not enough data to graph.")
     else:
         st.write("No data to graph.")
-
-```
