@@ -12,8 +12,6 @@ from email.mime.multipart import MIMEMultipart
 st.set_page_config(page_title="Pippafit 65", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 
-
-
 # --- EMAIL FUNCTION ---
 def send_workout_email(summary_html):
     try:
@@ -183,42 +181,36 @@ try:
     movements_db = get_movements_data()
     history_df = get_logs_data()
 except Exception:
-   # --- FIXED INDENTATION FOR CHART ---
-            chart_data = history_df[history_df['Exercise'] == current_exercise][['Date', 'Weight']].copy()
-            if not chart_data.empty:
-                st.line_chart(chart_data, x='Date', y='Weight', height=150)
+    st.error("Connection Error. Retrying...")
+    st.stop()
 
-            tab_log, tab_edit = st.tabs(["Log Sets", "Edit"])
+# --- UI HEADER ---
+img_light = get_base64_image("Pippafit_Light.png")
+img_dark = get_base64_image("Pippafit_Dark.png")
+if img_light and img_dark:
+    st.markdown(f'<div class="logo-container"><img src="data:image/png;base64,{img_light}" class="logo-light"><img src="data:image/png;base64,{img_dark}" class="logo-dark"></div>', unsafe_allow_html=True)
 
-            with tab_log:
-                st.caption(f"**{target_msg}**")
-                for i in range(1, 4):
-                    with st.container(border=True):
-                        st.markdown(f"###### Set {i}")
-                        kw, kr = f"{current_exercise}_w{i}", f"{current_exercise}_r{i}"
-                        
-                        # --- REMOVED DUPLICATE COLUMN DEFINITION ---
-                        c_w, c_r = st.columns(2)
-                        
-                        c_w.number_input(
-                            "Kg", 
-                            value=None, 
-                            step=1.25, 
-                            key=kw, 
-                            max_value=150.0, 
-                            help="Maximum weight is 150kg. Please reduce input if higher.",
-                            on_change=update_weights if i==1 else None, 
-                            args=(current_exercise,) if i==1 else None
-                        )
-                        
-                        c_r.number_input(
-                            "Reps", 
-                            value=None, 
-                            step=1, 
-                            key=kr, 
-                            max_value=25,
-                            help="Maximum reps is 25. Please reduce input if higher."
-                        )
+# --- DAY SELECTION ---
+days = ["Monday", "Wednesday", "Saturday"]
+if 'selected_day' not in st.session_state:
+    curr_day = datetime.now().strftime("%A")
+    st.session_state.selected_day = curr_day if curr_day in days else "Monday"
+
+cols = st.columns(3)
+for i, day in enumerate(days):
+    if cols[i].button(day, type="primary" if st.session_state.selected_day == day else "secondary", use_container_width=True):
+        st.session_state.selected_day = day
+        st.rerun()
+
+# --- GLOBAL TREADMILL WARM UP ---
+st.markdown("""
+<div class="warmup-box">
+    <h3 style="margin-top:0; color:#D81B60;">🔥 Warm up</h3>
+    🏃 <b>10 MINS</b> | Treadmill<br><br>
+    Visualise the gift you give yourself at <b>65</b>.<br>
+    Focus on the outcomes of the effort you put in now.
+</div>
+""", unsafe_allow_html=True)
 
 # --- WORKOUT SPREAD ---
 day_data = movements_db[movements_db['Day'] == st.session_state.selected_day]
@@ -238,7 +230,7 @@ else:
             st.markdown(f'<p class="muscle-header">{muscle}</p>', unsafe_allow_html=True)
             st.markdown(f'<div class="exercise-title">{st.session_state[anchor_key]}</div>', unsafe_allow_html=True)
             
-            # --- SWAP INTERACTION (BELOW TITLE) ---
+            # --- SWAP INTERACTION ---
             swap_state_key = f"is_swapping_{muscle}"
             if swap_state_key not in st.session_state:
                 st.session_state[swap_state_key] = False
@@ -300,10 +292,10 @@ else:
                     best = last_session.sort_values(by=['Weight', 'Reps']).iloc[-1]
                     target_msg = f"Target: {float(best['Weight'])}kg x {int(best['Reps'])}"
 
-# Filter history for current exercise
-chart_data = history_df[history_df['Exercise'] == current_exercise][['Date', 'Weight']].copy()
-if not chart_data.empty:
-    st.line_chart(chart_data, x='Date', y='Weight', height=150)
+            # Chart
+            chart_data = history_df[history_df['Exercise'] == current_exercise][['Date', 'Weight']].copy()
+            if not chart_data.empty:
+                st.line_chart(chart_data, x='Date', y='Weight', height=150)
 
             tab_log, tab_edit = st.tabs(["Log Sets", "Edit"])
 
@@ -313,7 +305,7 @@ if not chart_data.empty:
                     with st.container(border=True):
                         st.markdown(f"###### Set {i}")
                         kw, kr = f"{current_exercise}_w{i}", f"{current_exercise}_r{i}"
-                        c_w, c_r = st.columns(2)
+                        
                         c_w, c_r = st.columns(2)
                         
                         # Added max_value and help text
