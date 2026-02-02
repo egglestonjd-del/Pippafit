@@ -2,13 +2,12 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
-import base64
 import time
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# --- CONFIG --- #
+# --- CONFIG ---
 st.set_page_config(page_title="Pippafit 65", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 
@@ -62,12 +61,6 @@ def format_youtube_url(url):
     if "/shorts/" in url: return url.replace("/shorts/", "/watch?v=")
     return url
 
-def get_base64_image(image_path):
-    try:
-        with open(image_path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    except FileNotFoundError: return None
-
 # --- CUSTOM CSS ---
 hide_st_style = """
     <style>
@@ -76,13 +69,6 @@ hide_st_style = """
     footer {visibility: hidden;}
     [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
     .block-container {padding-top: 2rem;}
-    
-    .logo-container {
-        margin-bottom: 50px;
-        display: flex;
-        justify-content: center;
-    }
-    .logo-img { display: block; margin: auto; width: 250px; }
     
     div.stButton > button[kind="primary"] {
         background-color: #D81B60 !important;
@@ -190,9 +176,13 @@ except Exception as e:
     st.stop()
 
 # --- UI HEADER ---
-img_logo = get_base64_image("pippafit_65.png")
-if img_logo:
-    st.markdown(f'<div class="logo-container"><img src="data:image/png;base64,{img_logo}" class="logo-img"></div>', unsafe_allow_html=True)
+# Using columns to center the image reliably
+c1, c2, c3 = st.columns([1, 2, 1])
+with c2:
+    try:
+        st.image("pippafit_65.png", width=250)
+    except Exception:
+        st.error("Logo file 'pippafit_65.png' not found.")
 
 # --- DAY SELECTION ---
 days = ["Monday", "Wednesday", "Saturday"]
