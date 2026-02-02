@@ -301,8 +301,28 @@ else:
                         st.markdown(f"###### Set {i}")
                         kw, kr = f"{current_exercise}_w{i}", f"{current_exercise}_r{i}"
                         c_w, c_r = st.columns(2)
-                        c_w.number_input("Kg", value=None, step=1.25, key=kw, on_change=update_weights if i==1 else None, args=(current_exercise,) if i==1 else None)
-                        c_r.number_input("Reps", value=None, step=1, key=kr)
+                        c_w, c_r = st.columns(2)
+                        
+                        # Added max_value and help text
+                        c_w.number_input(
+                            "Kg", 
+                            value=None, 
+                            step=1.25, 
+                            key=kw, 
+                            max_value=150.0, 
+                            help="Maximum weight is 150kg. Please reduce input if higher.",
+                            on_change=update_weights if i==1 else None, 
+                            args=(current_exercise,) if i==1 else None
+                        )
+                        
+                        c_r.number_input(
+                            "Reps", 
+                            value=None, 
+                            step=1, 
+                            key=kr, 
+                            max_value=25,
+                            help="Maximum reps is 25. Please reduce input if higher."
+                        )
                     
                     if i < 3:
                         st.markdown('<p class="rest-text">Rest 1 min between sets</p>', unsafe_allow_html=True)
