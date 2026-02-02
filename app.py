@@ -183,36 +183,42 @@ try:
     movements_db = get_movements_data()
     history_df = get_logs_data()
 except Exception:
-    st.error("Connection Error. Retrying...")
-    st.stop()
+   # --- FIXED INDENTATION FOR CHART ---
+            chart_data = history_df[history_df['Exercise'] == current_exercise][['Date', 'Weight']].copy()
+            if not chart_data.empty:
+                st.line_chart(chart_data, x='Date', y='Weight', height=150)
 
-# --- UI HEADER ---
-img_light = get_base64_image("Pippafit_Light.png")
-img_dark = get_base64_image("Pippafit_Dark.png")
-if img_light and img_dark:
-    st.markdown(f'<div class="logo-container"><img src="data:image/png;base64,{img_light}" class="logo-light"><img src="data:image/png;base64,{img_dark}" class="logo-dark"></div>', unsafe_allow_html=True)
+            tab_log, tab_edit = st.tabs(["Log Sets", "Edit"])
 
-# --- DAY SELECTION ---
-days = ["Monday", "Wednesday", "Saturday"]
-if 'selected_day' not in st.session_state:
-    curr_day = datetime.now().strftime("%A")
-    st.session_state.selected_day = curr_day if curr_day in days else "Monday"
-
-cols = st.columns(3)
-for i, day in enumerate(days):
-    if cols[i].button(day, type="primary" if st.session_state.selected_day == day else "secondary", use_container_width=True):
-        st.session_state.selected_day = day
-        st.rerun()
-
-# --- GLOBAL TREADMILL WARM UP ---
-st.markdown("""
-<div class="warmup-box">
-    <h3 style="margin-top:0; color:#D81B60;">🔥 Warm up</h3>
-    🏃 <b>10 MINS</b> | Treadmill<br><br>
-    Visualise the gift you give yourself at <b>65</b>.<br>
-    Focus on the outcomes of the effort you put in now.
-</div>
-""", unsafe_allow_html=True)
+            with tab_log:
+                st.caption(f"**{target_msg}**")
+                for i in range(1, 4):
+                    with st.container(border=True):
+                        st.markdown(f"###### Set {i}")
+                        kw, kr = f"{current_exercise}_w{i}", f"{current_exercise}_r{i}"
+                        
+                        # --- REMOVED DUPLICATE COLUMN DEFINITION ---
+                        c_w, c_r = st.columns(2)
+                        
+                        c_w.number_input(
+                            "Kg", 
+                            value=None, 
+                            step=1.25, 
+                            key=kw, 
+                            max_value=150.0, 
+                            help="Maximum weight is 150kg. Please reduce input if higher.",
+                            on_change=update_weights if i==1 else None, 
+                            args=(current_exercise,) if i==1 else None
+                        )
+                        
+                        c_r.number_input(
+                            "Reps", 
+                            value=None, 
+                            step=1, 
+                            key=kr, 
+                            max_value=25,
+                            help="Maximum reps is 25. Please reduce input if higher."
+                        )
 
 # --- WORKOUT SPREAD ---
 day_data = movements_db[movements_db['Day'] == st.session_state.selected_day]
