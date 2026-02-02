@@ -180,8 +180,19 @@ def update_weights(ex_key):
 try:
     movements_db = get_movements_data()
     history_df = get_logs_data()
-except Exception:
-    st.error("Connection Error. Retrying...")
+    
+    # Pre-processing for History/Graph
+    if not history_df.empty:
+        # Ensure Date is datetime object
+        history_df['Date'] = pd.to_datetime(history_df['Date'])
+        # Ensure numerics
+        history_df['Weight'] = pd.to_numeric(history_df['Weight'], errors='coerce').fillna(0)
+        history_df['Reps'] = pd.to_numeric(history_df['Reps'], errors='coerce').fillna(0)
+        # Calculate Volume
+        history_df['Volume'] = history_df['Weight'] * history_df['Reps']
+        
+except Exception as e:
+    st.error(f"Connection Error: {e}")
     st.stop()
 
 # --- UI HEADER ---
@@ -285,7 +296,7 @@ else:
             ex_history = history_df[history_df['Exercise'] == current_exercise].copy()
             target_msg = "No history"
             if not ex_history.empty:
-                ex_history['Date'] = pd.to_datetime(ex_history['Date'], errors='coerce')
+                # ex_history['Date'] is already converted in LOAD DATA section
                 last_date = ex_history.sort_values(by='Date').iloc[-1]['Date'].date()
                 last_session = ex_history[ex_history['Date'].dt.date == last_date]
                 if not last_session.empty:
@@ -351,7 +362,7 @@ else:
                 if recent.empty: st.info("No logs.")
                 else:
                     for idx, row in recent.iterrows():
-                        st.caption(f"{pd.to_datetime(row['Date']).strftime('%d %b')}")
+                        st.caption(f"{row['Date'].strftime('%d %b')}")
                         ec1, ec2, ec3 = st.columns([2, 2, 1])
                         nw = ec1.number_input("W", value=float(row['Weight']), key=f"editw_{idx}")
                         nr = ec2.number_input("R", value=int(row['Reps']), key=f"editr_{idx}")
@@ -399,3 +410,58 @@ else:
                     st.warning("Workout saved, but email failed. Check secrets config.")
         else:
             st.info("No logs found for today yet.")
+
+# --- NEW SECTION: HISTORY & PROGRESS ---
+st.divider()
+st.header("📊 History & Progress")
+
+tab_hist, tab_prog = st.tabs(["📅 Calendar Review", "📈 Progression"])
+
+with tab_hist:
+    # Calendar Function
+    if not history_df.empty:
+        # Determine date range for the picker
+        min_date = history_df['Date'].dt.date.min()
+        review_date = st.date_input(
+            "Select date to review logs:",
+            value=datetime.now().date(),
+            min_value=min_date,
+            max_value=datetime.now().date()
+        )
+        
+        # Filter data for selected date
+        day_logs = history_df[history_df['Date'].dt.date == review_date]
+        
+        if not day_logs.empty:
+            st.dataframe(
+                day_logs[['Exercise', 'Weight', 'Reps', 'Volume']].style.format(
+                    {"Weight": "{:.2f}", "Volume": "{:.0f}"}
+                ),
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            st.info(f"No workouts found for {review_date.strftime('%d %b %Y')}")
+    else:
+        st.write("No data available yet.")
+
+with tab_prog:
+    # Progression Graph
+    if not history_df.empty:
+        # User selects exercise from available history
+        ex_options = sorted(history_df['Exercise'].unique())
+        selected_ex = st.selectbox("Select Exercise for Graph:", ex_options)
+        
+        # Filter data for that exercise
+        chart_data = history_df[history_df['Exercise'] == selected_ex].copy()
+        
+        # Group by date and sum Volume (Total Daily Volume)
+        daily_volume = chart_data.groupby(chart_data['Date'].dt.date)['Volume'].sum()
+        
+        if not daily_volume.empty:
+            st.line_chart(daily_volume)
+            st.caption("Graph shows **Total Daily Volume** (Sum of Weight × Reps for all sets)")
+        else:
+            st.write("Not enough data to graph.")
+    else:
+        st.write("No data to graph.")
