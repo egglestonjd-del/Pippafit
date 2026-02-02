@@ -292,11 +292,6 @@ else:
                     best = last_session.sort_values(by=['Weight', 'Reps']).iloc[-1]
                     target_msg = f"Target: {float(best['Weight'])}kg x {int(best['Reps'])}"
 
-            # Chart
-            chart_data = history_df[history_df['Exercise'] == current_exercise][['Date', 'Weight']].copy()
-            if not chart_data.empty:
-                st.line_chart(chart_data, x='Date', y='Weight', height=150)
-
             tab_log, tab_edit = st.tabs(["Log Sets", "Edit"])
 
             with tab_log:
