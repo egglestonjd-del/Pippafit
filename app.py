@@ -435,7 +435,7 @@ with tab_hist:
         if not day_logs.empty:
             st.dataframe(
                 day_logs[['Exercise', 'Weight', 'Reps', 'Volume']].style.format(
-                    {"Weight": "{:.2f}", "Volume": "{:.0f}","Volume": "{:.0f}"}
+                    {"Weight": "{:.2f}", "Reps": "{:.0f}","Volume": "{:.0f}"}
                 ),
                 use_container_width=True,
                 hide_index=True
