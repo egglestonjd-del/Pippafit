@@ -8,7 +8,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# --- CONFIG ---
+# --- CONFIG --- #
 st.set_page_config(page_title="Pippafit 65", page_icon="💪")
 SHEET_URL = st.secrets["connections"]["gsheets"]["spreadsheet"]
 
