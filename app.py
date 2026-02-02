@@ -1,3 +1,4 @@
+```python
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
@@ -82,13 +83,7 @@ hide_st_style = """
         display: flex;
         justify-content: center;
     }
-    .logo-light { display: block; margin: auto; width: 250px; }
-    .logo-dark { display: none; margin: auto; width: 250px; }
-    
-    @media (prefers-color-scheme: dark) {
-        .logo-light { display: none; }
-        .logo-dark { display: block; }
-    }
+    .logo-img { display: block; margin: auto; width: 250px; }
     
     div.stButton > button[kind="primary"] {
         background-color: #D81B60 !important;
@@ -196,10 +191,9 @@ except Exception as e:
     st.stop()
 
 # --- UI HEADER ---
-img_light = get_base64_image("Pippafit_Light.png")
-img_dark = get_base64_image("Pippafit_Dark.png")
-if img_light and img_dark:
-    st.markdown(f'<div class="logo-container"><img src="data:image/png;base64,{img_light}" class="logo-light"><img src="data:image/png;base64,{img_dark}" class="logo-dark"></div>', unsafe_allow_html=True)
+img_logo = get_base64_image("pippafit_65.png")
+if img_logo:
+    st.markdown(f'<div class="logo-container"><img src="data:image/png;base64,{img_logo}" class="logo-img"></div>', unsafe_allow_html=True)
 
 # --- DAY SELECTION ---
 days = ["Monday", "Wednesday", "Saturday"]
@@ -465,3 +459,5 @@ with tab_prog:
             st.write("Not enough data to graph.")
     else:
         st.write("No data to graph.")
+
+```
