@@ -180,9 +180,9 @@ except Exception as e:
 c1, c2, c3 = st.columns([1, 2, 1])
 with c2:
     try:
-        st.image("pippafit_65.png", width=250)
+        st.image("pippafit.svg", width=250)
     except Exception:
-        st.error("Logo file 'pippafit_65.png' not found.")
+        st.error("Logo file 'pippafit.svg' not found.")
 
 # --- DAY SELECTION ---
 days = ["Monday", "Wednesday", "Saturday"]
